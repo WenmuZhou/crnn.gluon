@@ -127,7 +127,7 @@ def init_args():
     parser.add_argument('--lr', type=float, default=0.001, help='learning rate for Critic, default=0.00005')
     parser.add_argument('--model', default='', help="path to crnn (to continue training)")
     parser.add_argument('--alphabet', type=str, default=keys.alphabet)
-    parser.add_argument('--output_dir', default='output_gru_default', help='Where to store samples and models')
+    parser.add_argument('--output_dir', default='output/output_gru_default', help='Where to store samples and models')
     parser.add_argument('--displayInterval', type=int, default=10, help='Interval to be displayed')
     opt = parser.parse_args()
     return opt
