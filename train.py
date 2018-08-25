@@ -15,8 +15,6 @@ from dataset import Gluon_OCRDataset
 from crnn import CRNN
 from predict import decode
 
-# 设置随机种子
-mx.random.seed(2)
 
 def accuracy(predictions, labels, alphabet):
     predictions = predictions.softmax().topk(axis=2).asnumpy()
@@ -47,6 +45,10 @@ def train(opt):
         os.mkdir(opt.output_dir)
 
     ctx = mx.gpu(opt.gpu)
+    # 设置随机种子
+    mx.random.seed(2)
+    mx.random.seed(2, ctx=ctx)
+
     train_dataset = Gluon_OCRDataset(opt.trainfile, (opt.imgH, opt.imgW), 3, 81, opt.alphabet)
     train_data_loader = DataLoader(train_dataset.transform_first(transforms.ToTensor()), opt.batchSize, shuffle=True,
                                    last_batch='keep', num_workers=opt.workers)
@@ -70,7 +72,7 @@ def train(opt):
         tick = time.time()
         acc = .0
         cur_step = 0
-        if (epoch + 1) % 10 == 0 and trainer.learning_rate > opt.end_lr and epoch > opt.start_epochs:
+        if (epoch + 1) % 15 == 0 and trainer.learning_rate > opt.end_lr and epoch > opt.start_epochs:
             trainer.set_learning_rate(trainer.learning_rate * 0.1)
         for i, (data, label) in enumerate(train_data_loader):
             data = data.as_in_context(ctx)
@@ -91,7 +93,7 @@ def train(opt):
             if (i + 1) % opt.displayInterval == 0:
                 acc += accuracy(output, label, keys.alphabet)
                 sw.add_scalar(tag='train_acc', value=acc, global_step=cur_step)
-                print('[{}/{}], [{}/{}], CTC Loss: {:.4f},acc: {}, lr:{}, time:{:.4f} s'.format(epoch + 1, opt.epochs,
+                print('[{}/{}], [{}/{}], CTC Loss: {:.4f},acc: {:.4f}, lr:{}, time:{:.4f} s'.format(epoch + 1, opt.epochs,
                                                                                                 i + 1, all_step,
                                                                                                 loss.asscalar() / opt.displayInterval,
                                                                                                 acc,
@@ -106,7 +108,7 @@ def train(opt):
         print('start val ....')
         validation_accuracy = evaluate_accuracy(net, test_data_loader, ctx, opt.alphabet)
         sw.add_scalar(tag='val_acc', value=validation_accuracy, global_step=cur_step)
-        print("Epoch {0}, Val_acc {1:.4f}".format(epoch, validation_accuracy))
+        print("Epoch {}, Val_acc {:.4f}".format(epoch, validation_accuracy))
         net.save_parameters("{}/{}_{}.params".format(opt.output_dir, epoch + 1, validation_accuracy))
     sw.close()
 
@@ -130,7 +132,7 @@ def init_args():
     parser.add_argument('--model', default='',
                         help="path to crnn (to continue training)")
     parser.add_argument('--alphabet', type=str, default=keys.alphabet)
-    parser.add_argument('--output_dir', default='output/gru_crnn', help='Where to store samples and models')
+    parser.add_argument('--output_dir', default='output/crnn_lstm', help='Where to store samples and models')
     parser.add_argument('--displayInterval', type=int, default=10, help='Interval to be displayed')
     parser.add_argument('--restart_training', type=bool, default=True,
                         help="Restart from step 1 and remove summaries and checkpoints.")
