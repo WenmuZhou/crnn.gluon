@@ -104,7 +104,7 @@ def train(opt):
         print('start val ....')
         validation_accuracy = evaluate_accuracy(net, test_data_loader, ctx, opt.alphabet)
         sw.add_scalar(tag='val_acc', value=validation_accuracy, global_step=cur_step)
-        print("Epoch {0}, Val_acc {1:.2f}".format(epoch, validation_accuracy))
+        print("Epoch {0}, Val_acc {1:.4f}".format(epoch, validation_accuracy))
         net.save_parameters("{}/{}_{}.params".format(opt.output_dir, epoch + 1, validation_accuracy))
     sw.close()
 
