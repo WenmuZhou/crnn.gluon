@@ -68,7 +68,7 @@ def train(opt):
         tick = time.time()
         acc = .0
         cur_step = 0
-        if (epoch + 1) % 10 == 0 and trainer.learning_rate > 1e-6 and epoch > opt.start_epochs:
+        if (epoch + 1) % 10 == 0 and trainer.learning_rate > opt.end_lr and epoch > opt.start_epochs:
             trainer.set_learning_rate(trainer.learning_rate * 0.1)
         for i, (data, label) in enumerate(train_data_loader):
             data = data.as_in_context(ctx)
@@ -122,7 +122,8 @@ def init_args():
     parser.add_argument('--imgW', type=int, default=320, help='the width of the input image to network')
     parser.add_argument('--nh', type=int, default=256, help='size of the lstm hidden state')
     parser.add_argument('--epochs', type=int, default=100, help='number of epochs to train for')
-    parser.add_argument('--lr', type=float, default=0.001, help='learning rate for Critic, default=0.00005')
+    parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
+    parser.add_argument('--end_lr', type=float, default=1e-6, help='the end learning rate')
     parser.add_argument('--model', default='',
                         help="path to crnn (to continue training)")
     parser.add_argument('--alphabet', type=str, default=keys.alphabet)
