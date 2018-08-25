@@ -51,11 +51,27 @@ class Encoder(HybridBlock):
         return self.features(x)
 
 
+class BidirectionalGRU(HybridBlock):
+    def __init__(self, hidden_size, num_layers, nOut):
+        super(BidirectionalGRU, self).__init__()
+        with self.name_scope():
+            self.rnn = mx.gluon.rnn.LSTM(hidden_size, num_layers, bidirectional=True, layout='NTC')
+            self.fc = nn.Dense(units=nOut, flatten=False)
+
+    def hybrid_forward(self, F, x, *args, **kwargs):
+        x = self.rnn(x)
+        x = self.fc(x)  # [T * b, nOut]
+        return x
+
+
 class Decoder(HybridBlock):
-    def __init__(self, hidden_size=256, num_layers=1, **kwargs):
+    def __init__(self, n_class, hidden_size=256, num_layers=1, **kwargs):
         super(Decoder, self).__init__(**kwargs)
         with self.name_scope():
-            self.lstm = mx.gluon.rnn.LSTM(hidden_size, num_layers, bidirectional=True, layout='NTC')
+            self.lstm = nn.HybridSequential()
+            with self.lstm.name_scope():
+                self.lstm.add(BidirectionalGRU(hidden_size, num_layers, hidden_size * 2))
+                self.lstm.add(BidirectionalGRU(hidden_size, num_layers, n_class))
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         # b, c, h, w = x.shape
@@ -75,22 +91,20 @@ class CRNN(HybridBlock):
         super(CRNN, self).__init__(**kwargs)
         with self.name_scope():
             self.cnn = Encoder()
-            self.rnn = Decoder(hidden_size, num_layers)
-            self.fc = nn.Dense(units=n_class, flatten=False)
+            self.rnn = Decoder(n_class, hidden_size, num_layers)
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         x = self.cnn(x)
         x = self.rnn(x)
-        x = self.fc(x)
         return x
 
 
 if __name__ == '__main__':
-    ctx = mx.cpu()
+    ctx = mx.cpu(0)
     a = nd.zeros((2, 3, 32, 320), ctx=ctx)
     net = CRNN(10, 256, 1)
     # net.hybridize()
     net.initialize(ctx=ctx)
-    print(net)
     b = net(a)
     print(b.shape)
+    print(net)

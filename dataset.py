@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2018/8/23 22:18
 # @Author  : zhoujun
-
+import pathlib
 import numpy as np
 from mxnet import image, nd
 import cv2
@@ -20,8 +20,13 @@ class Gluon_OCRDataset(Dataset):
         :param alphabet: 字母表
         """
         super(Gluon_OCRDataset, self).__init__()
-        with open(data_txt, encoding='utf-8') as f:
-            self.data_list = [x.replace('\n', '').split(' ') for x in f.readlines()]
+        self.data_list = []
+        with open(data_txt, 'r', encoding='utf-8') as f:
+            for line in f.readlines():
+                line = line.strip('\n').split(' ')
+                img_path = pathlib.Path(line[0])
+                if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
+                    self.data_list.append((line[0], line[1]))
         self.data_shape = data_shape
         self.img_channel = img_channel
         self.num_label = num_label
@@ -32,7 +37,11 @@ class Gluon_OCRDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path, label = self.data_list[idx]
-        label = self.label_enocder(label)
+
+        try:
+            label = self.label_enocder(label)
+        except Exception as e:
+            print(img_path, label)
         img = self.pre_processing(img_path)
         return img, label
 
@@ -45,7 +54,7 @@ class Gluon_OCRDataset(Dataset):
         :param label: label字符串
         :return: 索引列表
         """
-        tmp_label = np.zeros(self.num_label, dtype=np.float32) - 1
+        tmp_label = nd.zeros(self.num_label, dtype=np.float32) - 1
         for i, ch in enumerate(label):
             tmp_label[i] = self.label_dict[ch]
         return tmp_label
@@ -56,34 +65,61 @@ class Gluon_OCRDataset(Dataset):
         :param img_path: 图片地址
         :return:
         """
-        img = image.imdecode(open(img_path, 'rb').read(), 1 if self.img_channel == 3 else 0).astype(np.float32)
-        h, w = img.shape[0], img.shape[1]
-        size = (w, h)
-        ratio_h = float(self.data_shape[1]) / size[1]
-        new_size = tuple([int(x * ratio_h) for x in size])
-        if new_size[0] < self.data_shape[0]:
-            img = image.ForceResizeAug(new_size)(img)
-            step = nd.zeros((self.data_shape[1], self.data_shape[0] - new_size[0], 3))
+        img = image.imread(img_path, 1 if self.img_channel == 3 else 0).astype(np.float32)
+        h, w = img.shape[:2]
+        ratio_h = float(self.data_shape[0]) / h
+        new_w = int(w * ratio_h)
+        if new_w < self.data_shape[1]:
+            img = image.imresize(img, w=new_w, h=self.data_shape[0])
+            step = nd.zeros((self.data_shape[0], self.data_shape[1] - new_w, 3))
             img = nd.concat(img, step, dim=1)
         else:
-            img = image.ForceResizeAug(self.data_shape)(img)
+            img = image.imresize(img, w=self.data_shape[1], h=self.data_shape[0])
         return img
+
+# def decode(prediction, alphabet):
+#     results = []
+#     for word in prediction:
+#         result = []
+#         for i, index in enumerate(word):
+#             if i < len(word) - 1 and word[i] == word[i + 1] and word[-1] != -1:  # Hack to decode label as well
+#                 continue
+#             if index == len(alphabet) or index == -1:
+#                 continue
+#             else:
+#                 result.append(alphabet[int(index)])
+#         results.append(result)
+#     words = [''.join(word) for word in results]
+#     return words
+
 
 
 if __name__ == '__main__':
     import keys
+    import time
     from mxnet.gluon.data import DataLoader
     from matplotlib import pyplot as plt
     from mxnet.gluon.data.vision.transforms import ToTensor
+    from predict import decode
 
     alphabet = keys.alphabet
-    dataset = Gluon_OCRDataset(r'Z:\lsp\lsp\number_crnn\crnn\data\test_win.txt', (320, 32), 3, 81, alphabet)
-    data_loader = DataLoader(dataset.transform_first(ToTensor()), 1,shuffle=True)
-    for img, label in data_loader:
-        label = label[0].asnumpy()
-        label = ''.join([alphabet[int(i)] for i in label[label != -1]])
-        img = img[0].asnumpy().transpose(1, 2, 0)
-        plt.title(label)
-        plt.imshow(img)
+    dataset = Gluon_OCRDataset('/data1/zj/data/crnn/train.txt', (32, 320), 3, 81, alphabet)
+
+    data_loader = DataLoader(dataset.transform_first(ToTensor()), 2, shuffle=True)
+    all = dataset.__len__() // 128
+    start = time.time()
+    for i, (img, label) in enumerate(data_loader):
+        print(i, all, time.time() - start)
+        start = time.time()
+        # label = label[0].asnumpy()
+        result = decode(label.asnumpy(),keys.alphabet)
+        img1 = img[0].asnumpy().transpose(1, 2, 0)
+        plt.title(result[0])
+        plt.imshow(img1)
+        plt.show()
+
+        img1 = img[1].asnumpy().transpose(1, 2, 0)
+        plt.title(result[1])
+        plt.imshow(img1)
         plt.show()
         break
