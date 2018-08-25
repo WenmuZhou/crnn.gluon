@@ -71,7 +71,7 @@ class Gluon_OCRDataset(Dataset):
         new_w = int(w * ratio_h)
         if new_w < self.data_shape[1]:
             img = image.imresize(img, w=new_w, h=self.data_shape[0])
-            step = nd.zeros((self.data_shape[0], self.data_shape[1] - new_w, 3))
+            step = nd.zeros((self.data_shape[0], self.data_shape[1] - new_w, self.img_channel))
             img = nd.concat(img, step, dim=1)
         else:
             img = image.imresize(img, w=self.data_shape[1], h=self.data_shape[0])
