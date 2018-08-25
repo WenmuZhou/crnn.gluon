@@ -15,6 +15,7 @@ from dataset import Gluon_OCRDataset
 from crnn import CRNN
 from predict import decode
 
+mx.random.seed(2)
 
 def accuracy(predictions, labels, alphabet):
     predictions = predictions.softmax().topk(axis=2).asnumpy()
