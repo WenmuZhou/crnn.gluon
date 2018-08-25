@@ -114,7 +114,7 @@ def init_args():
                         help='path to test dataset file')
     parser.add_argument('--gpu', type=int, default=2, help='the gpu id')
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=6)
-    parser.add_argument('--start_epochs', type=int, default=29, help='number of epochs to train for')
+    parser.add_argument('--start_epochs', type=int, default=0, help='number of epochs to train for')
     parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
     parser.add_argument('--imgH', type=int, default=32, help='the height of the input image to network')
     parser.add_argument('--imgW', type=int, default=320, help='the width of the input image to network')
