@@ -15,6 +15,7 @@ from dataset import Gluon_OCRDataset
 from crnn import CRNN
 from predict import decode
 
+# 设置随机种子
 mx.random.seed(2)
 
 def accuracy(predictions, labels, alphabet):
