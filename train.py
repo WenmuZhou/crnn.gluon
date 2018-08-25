@@ -63,11 +63,11 @@ def train(opt):
     sw = SummaryWriter(logdir=opt.output_dir, flush_secs=5)
     criterion = gluon.loss.CTCLoss()
     all_step = train_dataset.__len__() // opt.batchSize
-    global_step = 0
     for epoch in range(opt.start_epochs, opt.epochs):
         loss = .0
         tick = time.time()
         acc = .0
+        cur_step = 0
         if (epoch + 1) % 10 == 0 and trainer.learning_rate > 1e-6 and epoch > opt.start_epochs:
             trainer.set_learning_rate(trainer.learning_rate * 0.1)
         for i, (data, label) in enumerate(train_data_loader):
@@ -78,11 +78,13 @@ def train(opt):
                 output = net(data)
                 loss_ctc = criterion(output, label)
             loss_ctc.backward()
-            loss_c = loss_ctc.mean()
-            sw.add_scalar(tag='ctc_loss', value=loss_c.asscalar(), global_step=global_step)
-            global_step += 1
-            loss += loss_c
             trainer.step(data.shape[0])
+
+            loss_c = loss_ctc.mean()
+            cur_step = epoch * all_step + i
+            sw.add_scalar(tag='ctc_loss', value=loss_c.asscalar(), global_step=cur_step)
+            sw.add_scalar(tag='lr', value=trainer.learning_rate, global_step=cur_step)
+            loss += loss_c
 
             if (i + 1) % opt.displayInterval == 0:
                 acc += accuracy(output, label, keys.alphabet)
@@ -100,7 +102,7 @@ def train(opt):
             sw.add_graph(net)
         print('start val ....')
         validation_accuracy = evaluate_accuracy(net, test_data_loader, ctx, opt.alphabet)
-        sw.add_scalar(tag='val_acc', value=validation_accuracy, global_step=global_step)
+        sw.add_scalar(tag='val_acc', value=validation_accuracy, global_step=cur_step)
         print("Epoch {0}, Val_acc {1:.2f}".format(epoch, validation_accuracy))
         net.save_parameters("{}/{}_{}.params".format(opt.output_dir, epoch + 1, validation_accuracy))
     sw.close()
