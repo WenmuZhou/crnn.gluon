@@ -82,8 +82,8 @@ class Decoder(HybridBlock):
         with self.name_scope():
             self.lstm = nn.HybridSequential()
             with self.lstm.name_scope():
-                self.lstm.add(BidirectionalGRU(hidden_size, num_layers, hidden_size * 2))
-                self.lstm.add(BidirectionalGRU(hidden_size, num_layers, n_class))
+                self.lstm.add(BidirectionalLSTM(hidden_size, num_layers, hidden_size * 2))
+                self.lstm.add(BidirectionalLSTM(hidden_size, num_layers, n_class))
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         # b, c, h, w = x.shape

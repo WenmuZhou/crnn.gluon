@@ -58,6 +58,7 @@ class GluonNet:
         self.ctx = try_gpu(gpu_id)
         self.net = net
         self.net.load_parameters(model_path, self.ctx)
+        self.net.hybridize()
 
     def predict(self, img):
         '''
@@ -103,11 +104,11 @@ if __name__ == '__main__':
     import time
     from matplotlib import pyplot as plt
 
-    img_path = '/data1/zj/data/crnn/images/93784377_10.jpg'
-    model_path = 'output/output_gru_default/29_0.0.params'
+    img_path = '/data1/zj/data/crnn/images/93787666_1.jpg'
+    model_path = 'output/output_gru_default/28_0.9711170762517226.params'
     net = CRNN(len(keys.alphabet), hidden_size=256)
     gluon_net = GluonNet(model_path=model_path, alphabet=keys.alphabet, img_shape=(320, 32), img_channel=3, net=net,
-                         gpu_id=0)
+                         gpu_id=1)
     start = time.time()
     result = gluon_net.predict(img_path)
     print(time.time() - start)
