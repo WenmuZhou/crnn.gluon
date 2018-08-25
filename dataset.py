@@ -77,21 +77,6 @@ class Gluon_OCRDataset(Dataset):
             img = image.imresize(img, w=self.data_shape[1], h=self.data_shape[0])
         return img
 
-# def decode(prediction, alphabet):
-#     results = []
-#     for word in prediction:
-#         result = []
-#         for i, index in enumerate(word):
-#             if i < len(word) - 1 and word[i] == word[i + 1] and word[-1] != -1:  # Hack to decode label as well
-#                 continue
-#             if index == len(alphabet) or index == -1:
-#                 continue
-#             else:
-#                 result.append(alphabet[int(index)])
-#         results.append(result)
-#     words = [''.join(word) for word in results]
-#     return words
-
 
 
 if __name__ == '__main__':
