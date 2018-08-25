@@ -88,6 +88,7 @@ def train(opt):
 
             if (i + 1) % opt.displayInterval == 0:
                 acc += accuracy(output, label, keys.alphabet)
+                sw.add_scalar(tag='train_acc', value=acc, global_step=cur_step)
                 print('[{}/{}], [{}/{}], CTC Loss: {:.4f},acc: {}, lr:{}, time:{:.4f} s'.format(epoch + 1, opt.epochs,
                                                                                                 i + 1, all_step,
                                                                                                 loss.asscalar() / opt.displayInterval,
@@ -114,7 +115,7 @@ def init_args():
                         help='path to train dataset file')
     parser.add_argument('--testfile', default='/data1/zj/data/crnn/test.txt',
                         help='path to test dataset file')
-    parser.add_argument('--gpu', type=int, default=2, help='the gpu id')
+    parser.add_argument('--gpu', type=int, default=0, help='the gpu id')
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=6)
     parser.add_argument('--start_epochs', type=int, default=0, help='number of epochs to train for')
     parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
@@ -127,7 +128,7 @@ def init_args():
     parser.add_argument('--model', default='',
                         help="path to crnn (to continue training)")
     parser.add_argument('--alphabet', type=str, default=keys.alphabet)
-    parser.add_argument('--output_dir', default='output/output_gru_default', help='Where to store samples and models')
+    parser.add_argument('--output_dir', default='output/gru_crnn', help='Where to store samples and models')
     parser.add_argument('--displayInterval', type=int, default=10, help='Interval to be displayed')
     parser.add_argument('--restart_training', type=bool, default=True,
                         help="Restart from step 1 and remove summaries and checkpoints.")
