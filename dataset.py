@@ -16,7 +16,7 @@ class Gluon_OCRDataset(Dataset):
         :param data_txt: 存储着图片路径和对于label的文件
         :param data_shape: 图片的大小(w,h)
         :param img_channel: 图片通道数
-        :param num_label: 最大字符个数
+        :param num_label: 最大字符个数,应该和网络最终输出的序列宽度一样
         :param alphabet: 字母表
         """
         super(Gluon_OCRDataset, self).__init__()
