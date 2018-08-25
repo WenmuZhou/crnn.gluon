@@ -1,6 +1,6 @@
-.idea/
-.__pycache__
-.output/
+idea/
+__pycache__/
+output/
 *.pyc
 .DS_Store
 *.pth
