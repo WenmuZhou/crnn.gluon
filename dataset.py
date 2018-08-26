@@ -23,7 +23,7 @@ class Gluon_OCRDataset(Dataset):
         self.data_list = []
         with open(data_txt, 'r', encoding='utf-8') as f:
             for line in f.readlines():
-                line = line.strip('\n').split(' ')
+                line = line.strip('\n').split('\t')
                 img_path = pathlib.Path(line[0])
                 if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
                     self.data_list.append((line[0], line[1]))
@@ -65,18 +65,18 @@ class Gluon_OCRDataset(Dataset):
         :param img_path: 图片地址
         :return:
         """
-        img = image.imread(img_path, 1 if self.img_channel == 3 else 0).astype(np.float32)
+        img = image.imdecode(open(img_path, 'rb').read(), 1 if self.img_channel == 3 else 0)
+        # img = image.imread(img_path, 1 if self.img_channel == 3 else 0).astype(np.float32)
         h, w = img.shape[:2]
         ratio_h = float(self.data_shape[0]) / h
         new_w = int(w * ratio_h)
         if new_w < self.data_shape[1]:
             img = image.imresize(img, w=new_w, h=self.data_shape[0])
-            step = nd.zeros((self.data_shape[0], self.data_shape[1] - new_w, self.img_channel))
+            step = nd.zeros((self.data_shape[0], self.data_shape[1] - new_w, self.img_channel), dtype=img.dtype)
             img = nd.concat(img, step, dim=1)
         else:
             img = image.imresize(img, w=self.data_shape[1], h=self.data_shape[0])
         return img
-
 
 
 if __name__ == '__main__':
@@ -87,24 +87,19 @@ if __name__ == '__main__':
     from mxnet.gluon.data.vision.transforms import ToTensor
     from predict import decode
 
-    alphabet = keys.alphabet
-    dataset = Gluon_OCRDataset('/data1/zj/data/crnn/train.txt', (32, 320), 3, 81, alphabet)
+    alphabet = keys.no_alphabet
+    dataset = Gluon_OCRDataset('/data/zhy/crnn/no/test.txt', (32, 320), 3, 81, alphabet)
 
-    data_loader = DataLoader(dataset.transform_first(ToTensor()), 2, shuffle=True)
-    all = dataset.__len__() // 128
+    data_loader = DataLoader(dataset.transform_first(ToTensor()), 1, shuffle=True)
     start = time.time()
     for i, (img, label) in enumerate(data_loader):
         print(i, all, time.time() - start)
         start = time.time()
         # label = label[0].asnumpy()
-        result = decode(label.asnumpy(),keys.alphabet)
+        result = decode(label.asnumpy(), alphabet)
         img1 = img[0].asnumpy().transpose(1, 2, 0)
+        print(result[0])
         plt.title(result[0])
-        plt.imshow(img1)
-        plt.show()
-
-        img1 = img[1].asnumpy().transpose(1, 2, 0)
-        plt.title(result[1])
         plt.imshow(img1)
         plt.show()
         break

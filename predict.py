@@ -89,7 +89,7 @@ class GluonNet:
         :param img_path: 图片地址
         :return:
         """
-        img = image.imread(img_path, 1 if self.img_channel == 3 else 0)
+        img = image.imdecode(open(img_path, 'rb').read(), 1 if self.img_channel == 3 else 0)
         h, w = img.shape[:2]
         ratio_h = float(self.img_h) / h
         new_w = int(w * ratio_h)
@@ -103,11 +103,14 @@ class GluonNet:
 if __name__ == '__main__':
     import time
     from matplotlib import pyplot as plt
+    from matplotlib.font_manager import FontProperties
 
-    img_path = '/data1/zj/data/crnn/images/93787666_1.jpg'
-    model_path = 'output/output_gru_default/28_0.9711170762517226.params'
-    net = CRNN(len(keys.alphabet), hidden_size=256)
-    gluon_net = GluonNet(model_path=model_path, alphabet=keys.alphabet, img_shape=(320, 32), img_channel=3, net=net,
+    font = FontProperties(fname=r"simsun.ttc", size=14)
+
+    img_path = '/data/zhy/crnn/Chinese_character/data/上海医院名称合并_20180625/HP31011210017400_上海交通大学医学院附属仁济医院南院_f202017919125659 (2)_0_ori_上海交通大学医学院附属仁济医院南院.jpg'
+    model_path = 'output/crnn_lstm_txt/30_0.998875175070028.params'
+    net = CRNN(len(keys.txt_alphabet), hidden_size=256)
+    gluon_net = GluonNet(model_path=model_path, alphabet=keys.txt_alphabet, img_shape=(320, 32), img_channel=3, net=net,
                          gpu_id=1)
     start = time.time()
     result = gluon_net.predict(img_path)
@@ -115,6 +118,6 @@ if __name__ == '__main__':
     label = result[0]
     img = image.imread(img_path)
     img = img.asnumpy()
-    plt.title(label)
+    plt.title(label, fontproperties=font)
     plt.imshow(img)
     plt.show()
