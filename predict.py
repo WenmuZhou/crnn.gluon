@@ -68,7 +68,7 @@ class GluonNet:
         """
         assert self.img_channel in [1, 3], 'img_channel must in [1.3]'
         assert os.path.exists(img_path), 'file is not exists'
-        img = self.pre_processing(_path)
+        img = self.pre_processing(img_path)
         img = transforms.ToTensor()(img)
         img = img.expand_dims(axis=0)
 
