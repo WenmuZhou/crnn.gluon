@@ -23,7 +23,7 @@ class Gluon_OCRDataset(Dataset):
         self.data_list = []
         with open(data_txt, 'r', encoding='utf-8') as f:
             for line in f.readlines():
-                line = line.strip('\n').split('\t')
+                line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
                 img_path = pathlib.Path(line[0])
                 if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
                     self.data_list.append((line[0], line[1]))
@@ -37,7 +37,7 @@ class Gluon_OCRDataset(Dataset):
 
     def __getitem__(self, idx):
         img_path, label = self.data_list[idx]
-
+        label = label.replace(' ','')
         try:
             label = self.label_enocder(label)
         except Exception as e:
@@ -87,19 +87,21 @@ if __name__ == '__main__':
     from mxnet.gluon.data.vision.transforms import ToTensor
     from predict import decode
 
-    alphabet = keys.no_alphabet
-    dataset = Gluon_OCRDataset('/data/zhy/crnn/no/test.txt', (32, 320), 3, 81, alphabet)
+    alphabet = keys.zyqd_alphabet
+    dataset = Gluon_OCRDataset('/data1/fxw/crnn_train/test_new.txt', (32, 320), 3, 81, alphabet)
 
-    data_loader = DataLoader(dataset.transform_first(ToTensor()), 1, shuffle=True)
+    data_loader = DataLoader(dataset.transform_first(ToTensor()), 128, shuffle=True,num_workers=6)
     start = time.time()
+    s = dataset.__len__()//128
     for i, (img, label) in enumerate(data_loader):
-        print(i, all, time.time() - start)
-        start = time.time()
-        # label = label[0].asnumpy()
-        result = decode(label.asnumpy(), alphabet)
-        img1 = img[0].asnumpy().transpose(1, 2, 0)
-        print(result[0])
-        plt.title(result[0])
-        plt.imshow(img1)
-        plt.show()
-        break
+        print(i,s)
+        # print(i, all, time.time() - start)
+        # start = time.time()
+        # # label = label[0].asnumpy()
+        # result = decode(label.asnumpy(), alphabet)
+        # img1 = img[0].asnumpy().transpose(1, 2, 0)
+        # print(result[0])
+        # plt.title(result[0])
+        # plt.imshow(img1)
+        # plt.show()
+        # break

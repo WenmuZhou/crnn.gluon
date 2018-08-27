@@ -69,18 +69,18 @@ class GluonNet:
         assert self.img_channel in [1, 3], 'img_channel must in [1.3]'
         assert os.path.exists(img_path), 'file is not exists'
         img = self.pre_processing(img_path)
-        img = transforms.ToTensor()(img)
-        img = img.expand_dims(axis=0)
+        img1 = transforms.ToTensor()(img)
+        img1 = img1.expand_dims(axis=0)
 
-        img = img.as_in_context(self.ctx)
-        preds = self.net(img)
+        img1 = img1.as_in_context(self.ctx)
+        preds = self.net(img1)
 
         preds = preds.softmax().topk(axis=2).asnumpy()
         result = decode(preds, self.alphabet, raw=True)
         print(result)
         result = decode(preds, self.alphabet)
         print(result)
-        return result
+        return result,img
 
     def pre_processing(self, img_path):
         """
@@ -107,41 +107,40 @@ if __name__ == '__main__':
 
     font = FontProperties(fname=r"simsun.ttc", size=14)
 
-    img_path = '/data/zhy/crnn/Chinese_character/data/上海医院名称合并_20180625/HP31011210017400_上海交通大学医学院附属仁济医院南院_f202017919125659 (2)_0_ori_上海交通大学医学院附属仁济医院南院.jpg'
-    # model_path = 'output/crnn_lstm_all/53_0.9920078039430449.params'
-    # net = CRNN(len(keys.all_alphabet), hidden_size=256)
-    # gluon_net = GluonNet(model_path=model_path, alphabet=keys.all_alphabet, img_shape=(320, 32), img_channel=3, net=net,
-    #                      gpu_id=0)
-    # start = time.time()
-    # result = gluon_net.predict(img_path)
-    # print(time.time() - start)
-    #
-    # gluon_net.net.export('./all')
-    img_h = 32
-    img_w = 320
-    img = image.imdecode(open(img_path, 'rb').read(), 1)
-    h, w = img.shape[:2]
-    ratio_h = float(img_h) / h
-    new_w = int(w * ratio_h)
-    img = image.imresize(img, w=new_w, h=img_h)
-    if new_w < img_w:
-        step = nd.zeros((img_h, img_w - new_w, 3), dtype=img.dtype)
-        img = nd.concat(img, step, dim=1)
-
-    img = transforms.ToTensor()(img)
-    img = img.expand_dims(axis=0)
-    ctx = try_gpu(0)
-    # img = img.as_in_context(ctx)
-    net = gluon.SymbolBlock.imports('all-symbol.json',['data'],'all-0000.params')
+    img_path = '1.jpg'
+    model_path = 'output/3_0.816241421840099.params'
+    net = CRNN(len(keys.zyqd_alphabet), hidden_size=256)
+    gluon_net = GluonNet(model_path=model_path, alphabet=keys.zyqd_alphabet, img_shape=(320, 32), img_channel=3, net=net,
+                         gpu_id=0)
     start = time.time()
-    result = net(img)
-
-    result = result.softmax().topk(axis=2).asnumpy()
-    result = decode(result, keys.all_alphabet)
-    label = result[0]
+    result,img = gluon_net.predict(img_path)
     print(time.time() - start)
-    img = image.imread(img_path)
-    img = img.asnumpy()
+
+    # gluon_net.net.export('./output/num')
+    # img_h = 32
+    # img_w = 320
+    # img = image.imdecode(open(img_path, 'rb').read(), 1)
+    # h, w = img.shape[:2]
+    # ratio_h = float(img_h) / h
+    # new_w = int(w * ratio_h)
+    # img = image.imresize(img, w=new_w, h=img_h)
+    # if new_w < img_w:
+    #     step = nd.zeros((img_h, img_w - new_w, 3), dtype=img.dtype)
+    #     img = nd.concat(img, step, dim=1)
+    #
+    # img = transforms.ToTensor()(img)
+    # img = img.expand_dims(axis=0)
+    # ctx = try_gpu(0)
+    # img = img.as_in_context(ctx)
+    # net = gluon.SymbolBlock.imports('output/all-symbol.json', ['data'], 'output/all-0000.params', ctx=ctx)
+    # for i in range(100):
+    #     start = time.time()
+    #     result = net(img)
+    #     result = result.softmax().topk(axis=2).asnumpy()
+    #     result = decode(result, keys.all_alphabet)
+    #     print(time.time() - start)
+    #
+    label = result[0]
     plt.title(label, fontproperties=font)
-    plt.imshow(img)
+    plt.imshow(img.asnumpy())
     plt.show()

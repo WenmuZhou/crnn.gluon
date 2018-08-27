@@ -2,7 +2,6 @@
 # @Time    : 2018/8/23 22:20
 # @Author  : zhoujun
 import os
-import math
 import time
 import shutil
 import argparse
@@ -24,7 +23,7 @@ def accuracy(predictions, labels, alphabet):
     for pred, target in zipped:
         if pred == target:
             n_correct += 1
-    return n_correct / len(labels)
+    return n_correct
 
 
 def evaluate_accuracy(net, dataloader, ctx, alphabet):
@@ -34,7 +33,7 @@ def evaluate_accuracy(net, dataloader, ctx, alphabet):
         label = label.as_in_context(ctx)
         output = net(data)
         metric += accuracy(output, label, alphabet)
-    return metric / dataloader.__len__()
+    return metric
 
 
 def train(opt):
@@ -50,10 +49,10 @@ def train(opt):
     mx.random.seed(2)
     mx.random.seed(2, ctx=ctx)
 
-    train_dataset = Gluon_OCRDataset(opt.trainfile, (opt.imgH, opt.imgW), 3, 81, opt.alphabet)
+    train_dataset = Gluon_OCRDataset(opt.trainfile, (opt.imgH, opt.imgW), 1, 81, opt.alphabet)
     train_data_loader = DataLoader(train_dataset.transform_first(transforms.ToTensor()), opt.batchSize, shuffle=True,
                                    last_batch='keep', num_workers=opt.workers)
-    test_dataset = Gluon_OCRDataset(opt.trainfile, (opt.imgH, opt.imgW), 3, 81, opt.alphabet)
+    test_dataset = Gluon_OCRDataset(opt.testfile, (opt.imgH, opt.imgW), 1, 81, opt.alphabet)
     test_data_loader = DataLoader(test_dataset.transform_first(transforms.ToTensor()), opt.batchSize, shuffle=True,
                                   last_batch='keep', num_workers=opt.workers)
     net = CRNN(len(opt.alphabet), hidden_size=opt.nh)
@@ -75,7 +74,6 @@ def train(opt):
     for epoch in range(opt.start_epochs, opt.epochs):
         loss = .0
         tick = time.time()
-        acc = .0
         cur_step = 0
         for i, (data, label) in enumerate(train_data_loader):
             data = data.as_in_context(ctx)
@@ -94,36 +92,33 @@ def train(opt):
             loss += loss_c
 
             if (i + 1) % opt.displayInterval == 0:
-                acc += accuracy(output, label, opt.alphabet)
+                acc = accuracy(output, label, opt.alphabet) / len(label)
                 sw.add_scalar(tag='train_acc', value=acc, global_step=cur_step)
-                print(
-                    '[{}/{}], [{}/{}], CTC Loss: {:.4f},acc: {:.4f}, lr:{}, time:{:.4f} s'.format(epoch + 1, opt.epochs,
-                                                                                                  i + 1, all_step,
-                                                                                                  loss.asscalar() / opt.displayInterval,
-                                                                                                  acc,
-                                                                                                  trainer.learning_rate,
-                                                                                                  time.time() - tick))
+                print('[{}/{}], [{}/{}], ctc loss: {:.4f},acc: {:.4f}, lr:{}, time:{:.4f} s'.format(
+                    epoch + 1, opt.epochs, i + 1, all_step, loss.asscalar() / opt.displayInterval, acc,
+                    trainer.learning_rate, time.time() - tick))
                 loss = .0
-                acc = .0
                 tick = time.time()
                 nd.waitall()
         if epoch == 0:
             sw.add_graph(net)
         print('start val ....')
-        validation_accuracy = evaluate_accuracy(net, test_data_loader, ctx, opt.alphabet)
+        validation_accuracy = evaluate_accuracy(net, test_data_loader, ctx, opt.alphabet) / test_dataset.__len__()
         sw.add_scalar(tag='val_acc', value=validation_accuracy, global_step=cur_step)
-        print("Epoch {}, Val_acc {:.4f}".format(epoch + 1, validation_accuracy))
+        print("Epoch {}, val_acc {:.4f}".format(epoch + 1, validation_accuracy))
         net.save_parameters("{}/{}_{}.params".format(opt.output_dir, epoch + 1, validation_accuracy))
     sw.close()
 
 
 def init_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--trainfile', default='/data/zhy/crnn/no/train.txt',
+    parser.add_argument('--trainfile', default='/data/zhy/crnn/Chinese_character/train2.txt',
+                        # /data1/fxw/crnn_train/train_new.txt',
                         help='path to train dataset file')
-    parser.add_argument('--testfile', default='/data/zhy/crnn/no/test.txt',
+    parser.add_argument('--testfile', default='/data/zhy/crnn/Chinese_character/test2.txt',
+                        # /data1/fxw/crnn_train/test_new.txt',
                         help='path to test dataset file')
-    parser.add_argument('--gpu', type=int, default=3, help='the gpu id')
+    parser.add_argument('--gpu', type=int, default=2, help='the gpu id')
     parser.add_argument('--workers', type=int, help='number of data loading workers', default=6)
     parser.add_argument('--start_epochs', type=int, default=0, help='number of epochs to train for')
     parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
@@ -133,11 +128,11 @@ def init_args():
     parser.add_argument('--epochs', type=int, default=100, help='number of epochs to train for')
     parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
     parser.add_argument('--end_lr', type=float, default=1e-6, help='the end learning rate')
-    parser.add_argument('--model', default='',
-                        help="path to crnn (to continue training)")
-    parser.add_argument('--alphabet', type=str, default=keys.no_alphabet)
-    parser.add_argument('--output_dir', default='output/crnn_lstm_no_test', help='Where to store samples and models')
+    parser.add_argument('--alphabet', type=str, default=keys.txt_alphabet)
+    parser.add_argument('--output_dir', default='output/crnn_lstm_txt_g_0827', help='Where to store samples and models')
     parser.add_argument('--displayInterval', type=int, default=10, help='Interval to be displayed')
+
+    parser.add_argument('--model', default='', help="path to crnn (to continue training)")
     parser.add_argument('--restart_training', type=bool, default=True,
                         help="Restart from step 1 and remove summaries and checkpoints.")
 
