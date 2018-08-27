@@ -120,3 +120,4 @@ if __name__ == '__main__':
     b = net(a)
     print(b.shape)
     print(net)
+    net.export()
