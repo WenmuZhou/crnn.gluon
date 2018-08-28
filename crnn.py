@@ -5,11 +5,12 @@
 import mxnet as mx
 from mxnet import nd
 from mxnet.gluon import nn, HybridBlock
+from mxnet.gluon.model_zoo.vision.resnet import BasicBlockV2, BottleneckV2
 
 
-class Encoder(HybridBlock):
+class VGG(nn.HybridBlock):
     def __init__(self):
-        super(Encoder, self).__init__()
+        super(VGG, self).__init__()
         with self.name_scope():
             self.features = nn.HybridSequential()
             with self.features.name_scope():
@@ -51,6 +52,36 @@ class Encoder(HybridBlock):
         return self.features(x)
 
 
+class ResNet(nn.HybridBlock):
+    def __init__(self):
+        super(ResNet, self).__init__()
+        with self.name_scope():
+            self.features = nn.HybridSequential()
+            with self.features.name_scope():
+                self.features.add(
+                    nn.Conv2D(64, 3, padding=1, use_bias=False),
+                    nn.BatchNorm(),
+                    nn.Activation('relu'),
+                    nn.MaxPool2D(pool_size=2, strides=2),
+                    BasicBlockV2(64, 1, True),
+                    BasicBlockV2(128, 1, True),
+                    BasicBlockV2(128, 2, True),
+                    BasicBlockV2(256, 1, True),
+                    nn.MaxPool2D(pool_size=(2, 2), strides=(2, 1), padding=(0, 1)),
+                    BasicBlockV2(512, 1, True),
+
+                    nn.Conv2D(1024, 3, padding=0, use_bias=False),
+                    nn.BatchNorm(),
+                    nn.Activation('relu'),
+                    nn.Conv2D(2048, 2, padding=(0, 1), use_bias=False),
+                    nn.BatchNorm(),
+                    nn.Activation('relu'),
+                )
+
+    def hybrid_forward(self, F, x, *args, **kwargs):
+        return self.features(x)
+
+
 class BidirectionalGRU(HybridBlock):
     def __init__(self, hidden_size, num_layers, nOut):
         super(BidirectionalGRU, self).__init__()
@@ -62,6 +93,7 @@ class BidirectionalGRU(HybridBlock):
         x = self.rnn(x)
         x = self.fc(x)  # [T * b, nOut]
         return x
+
 
 class BidirectionalLSTM(HybridBlock):
     def __init__(self, hidden_size, num_layers, nOut):
@@ -76,9 +108,19 @@ class BidirectionalLSTM(HybridBlock):
         return x
 
 
+class Encoder(HybridBlock):
+    def __init__(self):
+        super(Encoder, self).__init__()
+        with self.name_scope():
+            self.features = ResNet()#VGG()
+
+    def hybrid_forward(self, F, x, *args, **kwargs):
+        return self.features(x)
+
+
 class Decoder(HybridBlock):
-    def __init__(self, n_class, hidden_size=256, num_layers=1, **kwargs):
-        super(Decoder, self).__init__(**kwargs)
+    def __init__(self, n_class, hidden_size=256, num_layers=1):
+        super(Decoder, self).__init__()
         with self.name_scope():
             self.lstm = nn.HybridSequential()
             with self.lstm.name_scope():
@@ -99,8 +141,8 @@ class Decoder(HybridBlock):
 
 
 class CRNN(HybridBlock):
-    def __init__(self, n_class, hidden_size=256, num_layers=1, **kwargs):
-        super(CRNN, self).__init__(**kwargs)
+    def __init__(self, n_class, hidden_size=256, num_layers=1):
+        super(CRNN, self).__init__()
         with self.name_scope():
             self.cnn = Encoder()
             self.rnn = Decoder(n_class, hidden_size, num_layers)
@@ -112,12 +154,16 @@ class CRNN(HybridBlock):
 
 
 if __name__ == '__main__':
+    from mxboard import SummaryWriter
     ctx = mx.cpu(0)
-    a = nd.zeros((2, 3, 32, 320), ctx=ctx)
-    net = CRNN(10, 256, 1)
-    # net.hybridize()
+    sw = SummaryWriter(logdir='./log', flush_secs=5)
+    a = nd.zeros((2, 3, 227, 227), ctx=ctx)
+    # net = CRNN(10)
+    net = mx.gluon.model_zoo.vision.AlexNet()
+    net.hybridize()
     net.initialize(ctx=ctx)
     b = net(a)
     print(b.shape)
-    print(net)
-    net.export()
+    sw.add_graph(net)
+    sw.close()
+    # print(net)

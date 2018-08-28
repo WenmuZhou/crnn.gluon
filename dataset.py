@@ -66,7 +66,6 @@ class Gluon_OCRDataset(Dataset):
         :return:
         """
         img = image.imdecode(open(img_path, 'rb').read(), 1 if self.img_channel == 3 else 0)
-        # img = image.imread(img_path, 1 if self.img_channel == 3 else 0).astype(np.float32)
         h, w = img.shape[:2]
         ratio_h = float(self.data_shape[0]) / h
         new_w = int(w * ratio_h)

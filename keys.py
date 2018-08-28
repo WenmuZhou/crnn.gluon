@@ -3,7 +3,7 @@
 # @Author  : zhoujun
 
 # NOTE: -1 is reserved for 'blank' required by mxnet ctc
-BLANK_SYMBOL = '，'
+BLANK_SYMBOL = '_'
 no = '0123456789'
 no_alphabet = no + BLANK_SYMBOL
 num = u'0123456789.-\/:;D,wsCc()zo+v'

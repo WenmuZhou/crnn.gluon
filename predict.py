@@ -80,7 +80,7 @@ class GluonNet:
         print(result)
         result = decode(preds, self.alphabet)
         print(result)
-        return result,img
+        return result, img
 
     def pre_processing(self, img_path):
         """
@@ -108,15 +108,16 @@ if __name__ == '__main__':
     font = FontProperties(fname=r"simsun.ttc", size=14)
 
     img_path = '/home/zj/1.jpg'
-    model_path = 'output/crnn_lstm_txt_g_0827/38_0.930832725911625.params'
-    net = CRNN(len(keys.txt_alphabet), hidden_size=256)
-    gluon_net = GluonNet(model_path=model_path, alphabet=keys.txt_alphabet, img_shape=(320, 32), img_channel=1, net=net,
+    model_path = 'output/crnn_lstm_no/100_0.9683803233438486.params'
+    alphabet = keys.no_alphabet
+    net = CRNN(len(alphabet), hidden_size=256)
+    gluon_net = GluonNet(model_path=model_path, alphabet=alphabet, img_shape=(320, 32), img_channel=3, net=net,
                          gpu_id=0)
     start = time.time()
-    result,img = gluon_net.predict(img_path)
+    result, img = gluon_net.predict(img_path)
     print(time.time() - start)
 
-    gluon_net.net.export('./output/txt_g')
+    gluon_net.net.export('./output/no')
     # img_h = 32
     # img_w = 320
     # img = image.imdecode(open(img_path, 'rb').read(), 1)
@@ -142,5 +143,5 @@ if __name__ == '__main__':
     #
     label = result[0]
     plt.title(label, fontproperties=font)
-    plt.imshow(img.asnumpy())
+    plt.imshow(img.asnumpy().squeeze(), cmap='gray')
     plt.show()
