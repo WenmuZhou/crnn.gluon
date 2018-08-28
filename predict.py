@@ -94,7 +94,7 @@ class GluonNet:
         new_w = int(w * ratio_h)
         img = image.imresize(img, w=new_w, h=self.img_h)
         if new_w < self.img_w:
-            step = nd.zeros((self.img_h, self.img_w - new_w, 3), dtype=img.dtype)
+            step = nd.zeros((self.img_h, self.img_w - new_w, self.img_channel), dtype=img.dtype)
             img = nd.concat(img, step, dim=1)
         return img
 
@@ -107,16 +107,16 @@ if __name__ == '__main__':
 
     font = FontProperties(fname=r"simsun.ttc", size=14)
 
-    img_path = '1.jpg'
-    model_path = 'output/3_0.816241421840099.params'
-    net = CRNN(len(keys.zyqd_alphabet), hidden_size=256)
-    gluon_net = GluonNet(model_path=model_path, alphabet=keys.zyqd_alphabet, img_shape=(320, 32), img_channel=3, net=net,
+    img_path = '/home/zj/1.jpg'
+    model_path = 'output/crnn_lstm_txt_g_0827/38_0.930832725911625.params'
+    net = CRNN(len(keys.txt_alphabet), hidden_size=256)
+    gluon_net = GluonNet(model_path=model_path, alphabet=keys.txt_alphabet, img_shape=(320, 32), img_channel=1, net=net,
                          gpu_id=0)
     start = time.time()
     result,img = gluon_net.predict(img_path)
     print(time.time() - start)
 
-    # gluon_net.net.export('./output/num')
+    gluon_net.net.export('./output/txt_g')
     # img_h = 32
     # img_w = 320
     # img = image.imdecode(open(img_path, 'rb').read(), 1)
