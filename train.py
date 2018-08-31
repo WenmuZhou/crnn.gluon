@@ -11,7 +11,7 @@ from mxnet.gluon.data import DataLoader
 from mxnet.gluon.data.vision import transforms
 from mxboard import SummaryWriter
 import keys
-from dataset import Gluon_OCRDataset
+from dataset import ImageDataset
 from crnn import CRNN
 from predict import decode
 
@@ -49,10 +49,10 @@ def train(opt):
     mx.random.seed(2)
     mx.random.seed(2, ctx=ctx)
 
-    train_dataset = Gluon_OCRDataset(opt.trainfile, (opt.imgH, opt.imgW), 3, 80, opt.alphabet)
+    train_dataset = ImageDataset(opt.trainfile, (opt.imgH, opt.imgW), 3, 80, opt.alphabet)
     train_data_loader = DataLoader(train_dataset.transform_first(transforms.ToTensor()), opt.batchSize, shuffle=True,
                                    last_batch='keep', num_workers=opt.workers)
-    test_dataset = Gluon_OCRDataset(opt.testfile, (opt.imgH, opt.imgW), 3, 80, opt.alphabet)
+    test_dataset = ImageDataset(opt.testfile, (opt.imgH, opt.imgW), 3, 80, opt.alphabet)
     test_data_loader = DataLoader(test_dataset.transform_first(transforms.ToTensor()), opt.batchSize, shuffle=True,
                                   last_batch='keep', num_workers=opt.workers)
     net = CRNN(len(opt.alphabet), hidden_size=opt.nh)
@@ -117,7 +117,7 @@ def init_args():
     parser.add_argument('--testfile', default='/data/zhy/crnn/Chinese_character/test2.txt',
                         help='path to test dataset file')
     parser.add_argument('--gpu', type=int, default=3, help='the gpu id')
-    parser.add_argument('--workers', type=int, help='number of data loading workers', default=6)
+    parser.add_argument('--workers', type=int, help='number of data loading workers', default=12)
     parser.add_argument('--start_epochs', type=int, default=0, help='number of epochs to train for')
     parser.add_argument('--batchSize', type=int, default=128, help='input batch size')
     parser.add_argument('--imgH', type=int, default=32, help='the height of the input image to network')
@@ -127,8 +127,8 @@ def init_args():
     parser.add_argument('--lr', type=float, default=0.001, help='learning rate')
     parser.add_argument('--end_lr', type=float, default=1e-6, help='the end learning rate')
     parser.add_argument('--alphabet', type=str, default=keys.txt_alphabet)
-    parser.add_argument('--output_dir', default='output/crnn_lstm_txt_resnet', help='Where to store samples and models')
-    parser.add_argument('--displayInterval', type=int, default=10, help='Interval to be displayed')
+    parser.add_argument('--output_dir', default='output/crnn_lstm_txt_resnet_no_dense', help='Where to store samples and models')
+    parser.add_argument('--displayInterval', type=int, default=100, help='Interval to be displayed')
 
     parser.add_argument('--model', default='', help="path to crnn (to continue training)")
     parser.add_argument('--restart_training', type=bool, default=True,

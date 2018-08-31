@@ -100,11 +100,11 @@ class BidirectionalLSTM(HybridBlock):
         super(BidirectionalLSTM, self).__init__()
         with self.name_scope():
             self.rnn = mx.gluon.rnn.LSTM(hidden_size, num_layers, bidirectional=True, layout='NTC')
-            self.fc = nn.Dense(units=nOut, flatten=False)
+            # self.fc = nn.Dense(units=nOut, flatten=False)
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         x = self.rnn(x)
-        x = self.fc(x)  # [T * b, nOut]
+        # x = self.fc(x)  # [T * b, nOut]
         return x
 
 
@@ -146,24 +146,21 @@ class CRNN(HybridBlock):
         with self.name_scope():
             self.cnn = Encoder()
             self.rnn = Decoder(n_class, hidden_size, num_layers)
+            self.fc = nn.Dense(units=n_class, flatten=False)
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         x = self.cnn(x)
         x = self.rnn(x)
+        x = self.fc(x)
         return x
 
 
 if __name__ == '__main__':
-    from mxboard import SummaryWriter
-    ctx = mx.cpu(0)
-    sw = SummaryWriter(logdir='./log', flush_secs=5)
-    a = nd.zeros((2, 3, 227, 227), ctx=ctx)
-    # net = CRNN(10)
-    net = mx.gluon.model_zoo.vision.AlexNet()
+    ctx = mx.cpu()
+    a = nd.zeros((2, 3, 32, 320), ctx=ctx)
+    net = CRNN(10)
     net.hybridize()
     net.initialize(ctx=ctx)
     b = net(a)
     print(b.shape)
-    sw.add_graph(net)
-    sw.close()
-    # print(net)
+    print(net)

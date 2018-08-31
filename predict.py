@@ -108,8 +108,8 @@ if __name__ == '__main__':
     font = FontProperties(fname=r"simsun.ttc", size=14)
 
     img_path = '/home/zj/1.jpg'
-    model_path = 'output/crnn_lstm_no/100_0.9683803233438486.params'
-    alphabet = keys.no_alphabet
+    model_path = 'output/crnn_lstm_txt_resnet/51_0.9507889915486298.params'
+    alphabet = keys.txt_alphabet
     net = CRNN(len(alphabet), hidden_size=256)
     gluon_net = GluonNet(model_path=model_path, alphabet=alphabet, img_shape=(320, 32), img_channel=3, net=net,
                          gpu_id=0)
@@ -117,7 +117,7 @@ if __name__ == '__main__':
     result, img = gluon_net.predict(img_path)
     print(time.time() - start)
 
-    gluon_net.net.export('./output/no')
+    gluon_net.net.export('./output/txt')
     # img_h = 32
     # img_w = 320
     # img = image.imdecode(open(img_path, 'rb').read(), 1)
