@@ -1,6 +1,7 @@
 .idea/
 __pycache__/
 output/
+venv/
 *.pyc
 .DS_Store
 *.pth

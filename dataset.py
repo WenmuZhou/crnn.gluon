@@ -141,19 +141,19 @@ if __name__ == '__main__':
     alphabet = keys.txt_alphabet
     # dataset = ImageDataset('/data/zhy/crnn/Chinese_character/test2.txt', (32, 320), 3, 81, alphabet)
     dataset = RecordDataset('/data1/zj/data/crnn/txt/val.rec', (32, 320), 3, 81)
-    data_loader = DataLoader(dataset.transform_first(ToTensor()), 128, shuffle=True, num_workers=6)
+    data_loader = DataLoader(dataset.transform_first(ToTensor()), 128, shuffle=True, num_workers=0)
     print(len(dataset))
     start = time.time()
     for i, (img, label) in enumerate(data_loader):
-        # if (i + 1) % 10 == 0:
-        #     print(time.time() - start)
-        #     start = time.time()
-        start = time.time()
-        print(label.shape)
-        result = decode(label.asnumpy(), alphabet)
-        img1 = img[0].asnumpy().transpose(1, 2, 0)
-        print(result[0])
-        plt.title(result[0], FontProperties=font)
-        plt.imshow(img1)
-        plt.show()
-        break
+        if (i + 1) % 10 == 0:
+            print(time.time() - start)
+            start = time.time()
+        # start = time.time()
+        # print(label.shape)
+        # result = decode(label.asnumpy(), alphabet)
+        # img1 = img[0].asnumpy().transpose(1, 2, 0)
+        # print(result[0])
+        # plt.title(result[0], FontProperties=font)
+        # plt.imshow(img1)
+        # plt.show()
+        # break

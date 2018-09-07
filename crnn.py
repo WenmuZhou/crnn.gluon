@@ -62,12 +62,18 @@ class ResNet(nn.HybridBlock):
                     nn.Conv2D(64, 3, padding=1, use_bias=False),
                     nn.BatchNorm(),
                     nn.Activation('relu'),
-                    nn.MaxPool2D(pool_size=2, strides=2),
+                    # nn.MaxPool2D(pool_size=2, strides=2),
+                    nn.Conv2D(64, 2, strides=2, use_bias=False),
+                    nn.BatchNorm(),
+                    nn.Activation('relu'),
                     BasicBlockV2(64, 1, True),
                     BasicBlockV2(128, 1, True),
                     BasicBlockV2(128, 2, True),
                     BasicBlockV2(256, 1, True),
-                    nn.MaxPool2D(pool_size=(2, 2), strides=(2, 1), padding=(0, 1)),
+                    # nn.MaxPool2D(pool_size=(2, 2), strides=(2, 1), padding=(0, 1)),
+
+                    nn.Conv2D(256, 2, strides=(2, 1), padding=(0, 1), use_bias=False),
+                    # BasicBlockV2(256, 2, True),
                     BasicBlockV2(512, 1, True),
 
                     nn.Conv2D(1024, 3, padding=0, use_bias=False),
@@ -81,6 +87,40 @@ class ResNet(nn.HybridBlock):
     def hybrid_forward(self, F, x, *args, **kwargs):
         return self.features(x)
 
+class ResNet0_96(nn.HybridBlock):
+    def __init__(self):
+        super(ResNet, self).__init__()
+        with self.name_scope():
+            self.features = nn.HybridSequential()
+            with self.features.name_scope():
+                self.features.add(
+                    nn.Conv2D(64, 3, padding=1, use_bias=False),
+                    nn.BatchNorm(),
+                    nn.Activation('relu'),
+                    # nn.MaxPool2D(pool_size=2, strides=2),
+                    nn.Conv2D(64, 2, strides=2, use_bias=False),
+                    nn.BatchNorm(),
+                    nn.Activation('relu'),
+                    BasicBlockV2(64, 1, True),
+                    BasicBlockV2(128, 1, True),
+                    BasicBlockV2(128, 2, True),
+                    BasicBlockV2(256, 1, True),
+                    # nn.MaxPool2D(pool_size=(2, 2), strides=(2, 1), padding=(0, 1)),
+
+                    nn.Conv2D(256, 2, strides=(2, 1),padding=(0, 1), use_bias=False),
+
+                    BasicBlockV2(512, 1, True),
+
+                    nn.Conv2D(1024, 3, padding=0, use_bias=False),
+                    nn.BatchNorm(),
+                    nn.Activation('relu'),
+                    nn.Conv2D(2048, 2, padding=(0, 1), use_bias=False),
+                    nn.BatchNorm(),
+                    nn.Activation('relu'),
+                )
+
+    def hybrid_forward(self, F, x, *args, **kwargs):
+        return self.features(x)
 
 class BidirectionalGRU(HybridBlock):
     def __init__(self, hidden_size, num_layers, nOut):
@@ -112,7 +152,7 @@ class Encoder(HybridBlock):
     def __init__(self):
         super(Encoder, self).__init__()
         with self.name_scope():
-            self.features = ResNet()#VGG()
+            self.features = ResNet()  # VGG()
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         return self.features(x)
@@ -157,10 +197,11 @@ class CRNN(HybridBlock):
 
 if __name__ == '__main__':
     ctx = mx.cpu()
-    a = nd.zeros((2, 3, 32, 320), ctx=ctx)
-    net = CRNN(10)
+    a = nd.zeros((2, 3, 32, 200), ctx=ctx)
+    # net = CRNN(10)
+    net = ResNet()
     net.hybridize()
     net.initialize(ctx=ctx)
     b = net(a)
     print(b.shape)
-    print(net)
+    # print(net)
