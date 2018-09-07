@@ -8,9 +8,9 @@ Run predict
 --------
 A demo program can be found in `predict.py`.
 
-Edit the model_path and img_path in `predict.py`. Then launch the demo by:
+Edit the model_path and img_path in `predict.py`. Then launch the  `predict` by:
 
-    python demo.py
+    python predict.py
 
 The demo reads an example image and recognizes its text content.
 
