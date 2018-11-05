@@ -10,16 +10,18 @@ from mxnet.gluon.data import Dataset, RecordFileDataset
 
 class ImageDataset(Dataset):
     def __init__(self, data_txt: str, data_shape: tuple, img_channel: int, num_label: int,
-                 alphabet: str):
+                 alphabet: str, phase: str = 'train'):
         """
         数据集初始化
         :param data_txt: 存储着图片路径和对于label的文件
-        :param data_shape: 图片的大小(w,h)
+        :param data_shape: 图片的大小(h,w)
         :param img_channel: 图片通道数
         :param num_label: 最大字符个数,应该和网络最终输出的序列宽度一样
         :param alphabet: 字母表
         """
         super(ImageDataset, self).__init__()
+        assert phase in ['train', 'test']
+
         self.data_list = []
         with open(data_txt, 'r', encoding='utf-8') as f:
             for line in f.readlines():
@@ -27,10 +29,12 @@ class ImageDataset(Dataset):
                 img_path = pathlib.Path(line[0])
                 if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
                     self.data_list.append((line[0], line[1]))
-        self.data_shape = data_shape
+        self.img_h = data_shape[0]
+        self.img_w = data_shape[1]
         self.img_channel = img_channel
         self.num_label = num_label
         self.alphabet = alphabet
+        self.phase = phase
         self.label_dict = {}
         for i, char in enumerate(self.alphabet):
             self.label_dict[char] = i
@@ -62,19 +66,32 @@ class ImageDataset(Dataset):
     def pre_processing(self, img_path):
         """
         对图片进行处理，先按照高度进行resize，resize之后如果宽度不足指定宽度，就补黑色像素，否则就强行缩放到指定宽度
+
         :param img_path: 图片地址
         :return:
         """
+        data_augment = False
+        if self.phase == 'train' and np.random.rand() > 0.5:
+            data_augment = True
+        if data_augment:
+            img_h = 40
+            img_w = 340
+        else:
+            img_h = self.img_h
+            img_w = self.img_w
         img = image.imdecode(open(img_path, 'rb').read(), 1 if self.img_channel == 3 else 0)
         h, w = img.shape[:2]
-        ratio_h = float(self.data_shape[0]) / h
+        ratio_h = float(img_h) / h
         new_w = int(w * ratio_h)
-        if new_w < self.data_shape[1]:
-            img = image.imresize(img, w=new_w, h=self.data_shape[0])
-            step = nd.zeros((self.data_shape[0], self.data_shape[1] - new_w, self.img_channel), dtype=img.dtype)
+        if new_w < img_w:
+            img = image.imresize(img, w=new_w, h=img_h)
+            step = nd.zeros((img_h, img_w - new_w, self.img_channel), dtype=img.dtype)
             img = nd.concat(img, step, dim=1)
         else:
-            img = image.imresize(img, w=self.data_shape[1], h=self.data_shape[0])
+            img = image.imresize(img, w=img_w, h=img_h)
+
+        if data_augment:
+            img, _ = image.random_crop(img, (self.img_w, self.img_h))
         return img
 
 
@@ -126,11 +143,11 @@ class RecordDataset(RecordFileDataset):
             img = image.imresize(img, w=self.data_shape[1], h=self.data_shape[0])
         return img
 
+
 if __name__ == '__main__':
     import keys
     import time
     from mxnet.gluon.data import DataLoader
-    from mxnet.gluon.data.vision.datasets import ImageRecordDataset
     from matplotlib import pyplot as plt
     from matplotlib.font_manager import FontProperties
 
@@ -139,13 +156,13 @@ if __name__ == '__main__':
 
     font = FontProperties(fname=r"simsun.ttc", size=14)
     alphabet = keys.txt_alphabet
-    # dataset = ImageDataset('/data/zhy/crnn/Chinese_character/test2.txt', (32, 320), 3, 81, alphabet)
+    # dataset = ImageDataset('/data1/zj/data/crnn/txt/test2.txt', (32, 320), 3, 81, alphabet)
     dataset = RecordDataset('/data1/zj/data/crnn/txt/val.rec', (32, 320), 3, 81)
-    data_loader = DataLoader(dataset.transform_first(ToTensor()), 128, shuffle=True, num_workers=0)
+    data_loader = DataLoader(dataset.transform_first(ToTensor()), 128, shuffle=True, num_workers=12)
     print(len(dataset))
     start = time.time()
     for i, (img, label) in enumerate(data_loader):
-        if (i + 1) % 10 == 0:
+        if (i + 1) % 100 == 0:
             print(time.time() - start)
             start = time.time()
         # start = time.time()

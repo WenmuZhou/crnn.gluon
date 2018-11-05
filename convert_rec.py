@@ -71,7 +71,7 @@ def make_rec(data_txt, prefix, num_label):
             if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
                 img = pre_processing(line[0], data_shape, img_channel)
                 label = label_enocder(line[1], num_label)
-                p = mx.recordio.pack_img((0, label, i, 0), img, quality=100, img_fmt='.jpg')
+                p = mx.recordio.pack_img((0, label, i, 0), img, quality=95, img_fmt='.jpg')
                 record.write_idx(i, p)
                 i += 1
                 # if i > 100:
@@ -81,5 +81,5 @@ def make_rec(data_txt, prefix, num_label):
     pbar.close()
 
 
-# make_rec(val_fn, data_root + '/val', num_label)
-make_rec(train_fn, data_root + '/train', num_label)
+make_rec(val_fn, data_root + '/val', num_label)
+# make_rec(train_fn, data_root + '/train', num_label)
