@@ -156,15 +156,17 @@ if __name__ == '__main__':
 
     font = FontProperties(fname=r"simsun.ttc", size=14)
     alphabet = keys.txt_alphabet
-    # dataset = ImageDataset('/data1/zj/data/crnn/txt/test2.txt', (32, 320), 3, 81, alphabet)
-    dataset = RecordDataset('/data1/zj/data/crnn/txt/val.rec', (32, 320), 3, 81)
+    dataset = ImageDataset('/data/zhy/crnn/Chinese_character/train2.txt', (32, 320), 3, 81, alphabet)
+    # dataset = RecordDataset('/data1/zj/data/crnn/txt/val.rec', (32, 320), 3, 81)
     data_loader = DataLoader(dataset.transform_first(ToTensor()), 128, shuffle=True, num_workers=12)
-    print(len(dataset))
+    all_step = dataset.__len__() // 128
     start = time.time()
     for i, (img, label) in enumerate(data_loader):
+        cur_step = 0 * all_step + i
         if (i + 1) % 100 == 0:
             print(time.time() - start)
             start = time.time()
+    print(cur_step)
         # start = time.time()
         # print(label.shape)
         # result = decode(label.asnumpy(), alphabet)

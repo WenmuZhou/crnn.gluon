@@ -34,16 +34,16 @@ def pre_processing(img_path, data_shape, img_channel):
     :return:
     """
     img = cv2.imdecode(np.fromfile(img_path), 1)
-    # img = cv2.resize(img, (110, 16))
-    # h, w = img.shape[:2]
-    # ratio_h = float(data_shape[1]) / h
-    # new_w = int(w * ratio_h)
-    # if new_w < data_shape[0]:
-    #     img = cv2.resize(img, (new_w, data_shape[1]))
-    #     step = np.zeros((data_shape[1], data_shape[0] - new_w, img_channel), dtype=img.dtype)
-    #     img = np.column_stack((img, step))
-    # else:
-    #     img = cv2.resize(img, tuple(data_shape))
+    img = cv2.resize(img, (110, 16))
+    h, w = img.shape[:2]
+    ratio_h = float(data_shape[1]) / h
+    new_w = int(w * ratio_h)
+    if new_w < data_shape[0]:
+        img = cv2.resize(img, (new_w, data_shape[1]))
+        step = np.zeros((data_shape[1], data_shape[0] - new_w, img_channel), dtype=img.dtype)
+        img = np.column_stack((img, step))
+    else:
+        img = cv2.resize(img, tuple(data_shape))
     return img
 
 

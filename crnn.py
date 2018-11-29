@@ -70,10 +70,10 @@ class ResNet(nn.HybridBlock):
                     BasicBlockV2(64, 1, True),
                     BasicBlockV2(128, 1, True),
                     nn.Dropout(0.2),
+
                     BasicBlockV2(128, 2, True),
                     BasicBlockV2(256, 1, True),
                     nn.Dropout(0.2),
-                    # nn.MaxPool2D(pool_size=(2, 2), strides=(2, 1), padding=(0, 1)),
 
                     nn.Conv2D(256, 2, strides=(2, 1), padding=(0, 1), use_bias=False),
 
@@ -205,19 +205,20 @@ class CRNN(HybridBlock):
         x = self.cnn(x)
         x = x.squeeze(axis=2)
         x = x.transpose((0, 2, 1))  # (NTC)(batch, width, channel)
-
         x = self.rnn(x)
         x = self.fc(x)
         return x
 
 
 if __name__ == '__main__':
+    print(mx.__version__)
     ctx = mx.cpu()
     a = nd.zeros((2, 3, 32, 320), ctx=ctx)
     net = CRNN(10,512)
-    # net = DenseNet()
+    # net = VGG()
     # net.hybridize()
     net.initialize(ctx=ctx)
     b = net(a)
     print(b.shape)
-    print(net.summary(a))
+    print(net)
+    # print(net.summary(a))

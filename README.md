@@ -6,14 +6,9 @@ Origin software could be found in [crnn](https://github.com/bgshih/crnn)
 
 Run predict
 --------
-A demo program can be found in `predict.py`.
-
 Edit the model_path and img_path in `predict.py`. Then launch the  `predict` by:
 
     python predict.py
-
-The demo reads an example image and recognizes its text content.
-
 
 Train a new model
 -----------------
