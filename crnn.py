@@ -214,7 +214,7 @@ if __name__ == '__main__':
     print(mx.__version__)
     ctx = mx.cpu()
     a = nd.zeros((2, 3, 32, 320), ctx=ctx)
-    net = CRNN(10,512)
+    net = CRNN(10,256)
     # net = VGG()
     # net.hybridize()
     net.initialize(ctx=ctx)
