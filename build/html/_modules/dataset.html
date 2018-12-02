@@ -1,0 +1,378 @@
+
+
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="zh-CN" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="zh-CN" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>dataset &mdash; crnn.gluon 1.0 文档</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    <link rel="index" title="索引" href="../genindex.html" />
+    <link rel="search" title="搜索" href="../search.html" /> 
+
+  
+  <script src="../_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
+          
+
+          
+            <a href="../index.html" class="icon icon-home"> crnn.gluon
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                1.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <!-- Local TOC -->
+              <div class="local-toc"></div>
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">crnn.gluon</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="../index.html">Docs</a> &raquo;</li>
+        
+          <li><a href="index.html">模块代码</a> &raquo;</li>
+        
+      <li>dataset</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <h1>dataset 源代码</h1><div class="highlight"><pre>
+<span></span><span class="c1"># -*- coding: utf-8 -*-</span>
+<span class="c1"># @Time    : 2018/8/23 22:18</span>
+<span class="c1"># @Author  : zhoujun</span>
+<span class="kn">import</span> <span class="nn">pathlib</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">mxnet</span> <span class="k">import</span> <span class="n">image</span><span class="p">,</span> <span class="n">nd</span><span class="p">,</span> <span class="n">recordio</span>
+<span class="kn">import</span> <span class="nn">cv2</span>
+<span class="kn">from</span> <span class="nn">mxnet.gluon.data</span> <span class="k">import</span> <span class="n">Dataset</span><span class="p">,</span> <span class="n">RecordFileDataset</span>
+
+
+<div class="viewcode-block" id="ImageDataset"><a class="viewcode-back" href="../doc/dataset.html#dataset.ImageDataset">[文档]</a><span class="k">class</span> <span class="nc">ImageDataset</span><span class="p">(</span><span class="n">Dataset</span><span class="p">):</span>
+<div class="viewcode-block" id="ImageDataset.__init__"><a class="viewcode-back" href="../doc/dataset.html#dataset.ImageDataset.__init__">[文档]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_txt</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data_shape</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">img_channel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_label</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+                 <span class="n">alphabet</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">phase</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;train&#39;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        数据集初始化</span>
+
+<span class="sd">        :param data_txt: 存储着图片路径和对于label的文件</span>
+<span class="sd">        :param data_shape: 图片的大小(h,w)</span>
+<span class="sd">        :param img_channel: 图片通道数</span>
+<span class="sd">        :param num_label: 最大字符个数,应该和网络最终输出的序列宽度一样</span>
+<span class="sd">        :param alphabet: 字母表</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">ImageDataset</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="k">assert</span> <span class="n">phase</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;train&#39;</span><span class="p">,</span> <span class="s1">&#39;test&#39;</span><span class="p">]</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_list</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">data_txt</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">,</span> <span class="n">encoding</span><span class="o">=</span><span class="s1">&#39;utf-8&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="o">.</span><span class="n">readlines</span><span class="p">():</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39;.jpg &#39;</span><span class="p">,</span> <span class="s1">&#39;.jpg</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\t</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="n">img_path</span> <span class="o">=</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">if</span> <span class="n">img_path</span><span class="o">.</span><span class="n">exists</span><span class="p">()</span> <span class="ow">and</span> <span class="n">img_path</span><span class="o">.</span><span class="n">stat</span><span class="p">()</span><span class="o">.</span><span class="n">st_size</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">data_list</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">line</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_h</span> <span class="o">=</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_w</span> <span class="o">=</span> <span class="n">data_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_channel</span> <span class="o">=</span> <span class="n">img_channel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_label</span> <span class="o">=</span> <span class="n">num_label</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span> <span class="o">=</span> <span class="n">alphabet</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">=</span> <span class="n">phase</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">label_dict</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">char</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">alphabet</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">label_dict</span><span class="p">[</span><span class="n">char</span><span class="p">]</span> <span class="o">=</span> <span class="n">i</span></div>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="n">img_path</span><span class="p">,</span> <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_list</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">label</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s1">&#39; &#39;</span><span class="p">,</span> <span class="s1">&#39;&#39;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_enocder</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">img_path</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_processing</span><span class="p">(</span><span class="n">img_path</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">img</span><span class="p">,</span> <span class="n">label</span>
+
+    <span class="k">def</span> <span class="nf">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_list</span><span class="p">)</span>
+
+<div class="viewcode-block" id="ImageDataset.label_enocder"><a class="viewcode-back" href="../doc/dataset.html#dataset.ImageDataset.label_enocder">[文档]</a>    <span class="k">def</span> <span class="nf">label_enocder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        对label进行处理，将输入的label字符串转换成在字母表中的索引</span>
+
+<span class="sd">        :param label: label字符串</span>
+<span class="sd">        :return: 索引列表</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">tmp_label</span> <span class="o">=</span> <span class="n">nd</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_label</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">ch</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">label</span><span class="p">):</span>
+            <span class="n">tmp_label</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_dict</span><span class="p">[</span><span class="n">ch</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">tmp_label</span></div>
+
+<div class="viewcode-block" id="ImageDataset.pre_processing"><a class="viewcode-back" href="../doc/dataset.html#dataset.ImageDataset.pre_processing">[文档]</a>    <span class="k">def</span> <span class="nf">pre_processing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img_path</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        对图片进行处理，先按照高度进行resize，resize之后如果宽度不足指定宽度，就补黑色像素，否则就强行缩放到指定宽度</span>
+
+<span class="sd">        :param img_path: 图片地址</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data_augment</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">phase</span> <span class="o">==</span> <span class="s1">&#39;train&#39;</span> <span class="ow">and</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">()</span> <span class="o">&gt;</span> <span class="mf">0.5</span><span class="p">:</span>
+            <span class="n">data_augment</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">if</span> <span class="n">data_augment</span><span class="p">:</span>
+            <span class="n">img_h</span> <span class="o">=</span> <span class="mi">40</span>
+            <span class="n">img_w</span> <span class="o">=</span> <span class="mi">340</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">img_h</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_h</span>
+            <span class="n">img_w</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_w</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">imdecode</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="n">img_path</span><span class="p">,</span> <span class="s1">&#39;rb&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">(),</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_channel</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">ratio_h</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">img_h</span><span class="p">)</span> <span class="o">/</span> <span class="n">h</span>
+        <span class="n">new_w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">ratio_h</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">new_w</span> <span class="o">&lt;</span> <span class="n">img_w</span><span class="p">:</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">imresize</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">new_w</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">img_h</span><span class="p">)</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="n">nd</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">img_h</span><span class="p">,</span> <span class="n">img_w</span> <span class="o">-</span> <span class="n">new_w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_channel</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">nd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">imresize</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">img_w</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="n">img_h</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">data_augment</span><span class="p">:</span>
+            <span class="n">img</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">random_crop</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">img_w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_h</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">img</span></div></div>
+
+
+<div class="viewcode-block" id="RecordDataset"><a class="viewcode-back" href="../doc/dataset.html#dataset.RecordDataset">[文档]</a><span class="k">class</span> <span class="nc">RecordDataset</span><span class="p">(</span><span class="n">RecordFileDataset</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    A dataset wrapping over a RecordIO file contraining images</span>
+<span class="sd">    Each sample is an image and its corresponding label</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RecordDataset.__init__"><a class="viewcode-back" href="../doc/dataset.html#dataset.RecordDataset.__init__">[文档]</a>    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">,</span> <span class="n">data_shape</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">img_channel</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">num_label</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">RecordDataset</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data_shape</span> <span class="o">=</span> <span class="n">data_shape</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">img_channel</span> <span class="o">=</span> <span class="n">img_channel</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_label</span> <span class="o">=</span> <span class="n">num_label</span></div>
+
+    <span class="k">def</span> <span class="nf">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="n">record</span> <span class="o">=</span> <span class="nb">super</span><span class="p">(</span><span class="n">RecordDataset</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__getitem__</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="n">header</span><span class="p">,</span> <span class="n">img</span> <span class="o">=</span> <span class="n">recordio</span><span class="o">.</span><span class="n">unpack</span><span class="p">(</span><span class="n">record</span><span class="p">)</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">pre_processing</span><span class="p">(</span><span class="n">img</span><span class="p">)</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">label_enocder</span><span class="p">(</span><span class="n">header</span><span class="o">.</span><span class="n">label</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">img</span><span class="p">,</span> <span class="n">label</span>
+
+<div class="viewcode-block" id="RecordDataset.label_enocder"><a class="viewcode-back" href="../doc/dataset.html#dataset.RecordDataset.label_enocder">[文档]</a>    <span class="k">def</span> <span class="nf">label_enocder</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        对label进行处理，将输入的label字符串转换成在字母表中的索引</span>
+<span class="sd">        </span>
+<span class="sd">        :param label: label字符串</span>
+<span class="sd">        :return: 索引列表</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">nd</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">label</span><span class="p">)</span>
+        <span class="n">tmp_label</span> <span class="o">=</span> <span class="n">nd</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">num_label</span> <span class="o">-</span> <span class="nb">len</span><span class="p">(</span><span class="n">label</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span>
+        <span class="n">label</span> <span class="o">=</span> <span class="n">nd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">label</span><span class="p">,</span> <span class="n">tmp_label</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">label</span></div>
+
+<div class="viewcode-block" id="RecordDataset.pre_processing"><a class="viewcode-back" href="../doc/dataset.html#dataset.RecordDataset.pre_processing">[文档]</a>    <span class="k">def</span> <span class="nf">pre_processing</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">img</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        对图片进行处理</span>
+<span class="sd">        :param img_path: 图片</span>
+<span class="sd">        :return:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">img</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">imdecode</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="mi">1</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_channel</span> <span class="o">==</span> <span class="mi">3</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">img</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">ratio_h</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">/</span> <span class="n">h</span>
+        <span class="n">new_w</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">w</span> <span class="o">*</span> <span class="n">ratio_h</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">new_w</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">imresize</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="n">new_w</span><span class="p">,</span> <span class="n">h</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">step</span> <span class="o">=</span> <span class="n">nd</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">data_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">new_w</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">img_channel</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">img</span><span class="o">.</span><span class="n">dtype</span><span class="p">)</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">nd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">dim</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">img</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">imresize</span><span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_shape</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">h</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">data_shape</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">img</span></div></div>
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s1">&#39;__main__&#39;</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">keys</span>
+    <span class="kn">import</span> <span class="nn">time</span>
+    <span class="kn">from</span> <span class="nn">mxnet.gluon.data</span> <span class="k">import</span> <span class="n">DataLoader</span>
+    <span class="kn">from</span> <span class="nn">matplotlib</span> <span class="k">import</span> <span class="n">pyplot</span> <span class="k">as</span> <span class="n">plt</span>
+    <span class="kn">from</span> <span class="nn">matplotlib.font_manager</span> <span class="k">import</span> <span class="n">FontProperties</span>
+
+    <span class="kn">from</span> <span class="nn">mxnet.gluon.data.vision.transforms</span> <span class="k">import</span> <span class="n">ToTensor</span>
+    <span class="kn">from</span> <span class="nn">predict</span> <span class="k">import</span> <span class="n">decode</span>
+
+    <span class="n">font</span> <span class="o">=</span> <span class="n">FontProperties</span><span class="p">(</span><span class="n">fname</span><span class="o">=</span><span class="sa">r</span><span class="s2">&quot;simsun.ttc&quot;</span><span class="p">,</span> <span class="n">size</span><span class="o">=</span><span class="mi">14</span><span class="p">)</span>
+    <span class="n">alphabet</span> <span class="o">=</span> <span class="n">keys</span><span class="o">.</span><span class="n">txt_alphabet</span>
+    <span class="n">dataset</span> <span class="o">=</span> <span class="n">ImageDataset</span><span class="p">(</span><span class="s1">&#39;/data/zhy/crnn/Chinese_character/train2.txt&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">320</span><span class="p">),</span> <span class="mi">3</span><span class="p">,</span> <span class="mi">81</span><span class="p">,</span> <span class="n">alphabet</span><span class="p">)</span>
+    <span class="c1"># dataset = RecordDataset(&#39;/data1/zj/data/crnn/txt/val.rec&#39;, (32, 320), 3, 81)</span>
+    <span class="n">data_loader</span> <span class="o">=</span> <span class="n">DataLoader</span><span class="p">(</span><span class="n">dataset</span><span class="o">.</span><span class="n">transform_first</span><span class="p">(</span><span class="n">ToTensor</span><span class="p">()),</span> <span class="mi">128</span><span class="p">,</span> <span class="n">shuffle</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">num_workers</span><span class="o">=</span><span class="mi">12</span><span class="p">)</span>
+    <span class="n">all_step</span> <span class="o">=</span> <span class="n">dataset</span><span class="o">.</span><span class="fm">__len__</span><span class="p">()</span> <span class="o">//</span> <span class="mi">128</span>
+    <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">img</span><span class="p">,</span> <span class="n">label</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">data_loader</span><span class="p">):</span>
+        <span class="n">cur_step</span> <span class="o">=</span> <span class="mi">0</span> <span class="o">*</span> <span class="n">all_step</span> <span class="o">+</span> <span class="n">i</span>
+        <span class="k">if</span> <span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">100</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">start</span><span class="p">)</span>
+            <span class="n">start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">cur_step</span><span class="p">)</span>
+        <span class="c1"># start = time.time()</span>
+        <span class="c1"># print(label.shape)</span>
+        <span class="c1"># result = decode(label.asnumpy(), alphabet)</span>
+        <span class="c1"># img1 = img[0].asnumpy().transpose(1, 2, 0)</span>
+        <span class="c1"># print(result[0])</span>
+        <span class="c1"># plt.title(result[0], FontProperties=font)</span>
+        <span class="c1"># plt.imshow(img1)</span>
+        <span class="c1"># plt.show()</span>
+        <span class="c1"># break</span>
+</pre></div>
+
+           </div>
+           
+          </div>
+          <footer>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2018, zhoujun
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+
+  
+
+    
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
+        <script type="text/javascript" src="../_static/jquery.js"></script>
+        <script type="text/javascript" src="../_static/underscore.js"></script>
+        <script type="text/javascript" src="../_static/doctools.js"></script>
+        <script type="text/javascript" src="../_static/translations.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="../_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

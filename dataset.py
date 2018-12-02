@@ -13,6 +13,7 @@ class ImageDataset(Dataset):
                  alphabet: str, phase: str = 'train'):
         """
         数据集初始化
+
         :param data_txt: 存储着图片路径和对于label的文件
         :param data_shape: 图片的大小(h,w)
         :param img_channel: 图片通道数
@@ -55,6 +56,7 @@ class ImageDataset(Dataset):
     def label_enocder(self, label):
         """
         对label进行处理，将输入的label字符串转换成在字母表中的索引
+
         :param label: label字符串
         :return: 索引列表
         """
@@ -117,6 +119,7 @@ class RecordDataset(RecordFileDataset):
     def label_enocder(self, label):
         """
         对label进行处理，将输入的label字符串转换成在字母表中的索引
+        
         :param label: label字符串
         :return: 索引列表
         """

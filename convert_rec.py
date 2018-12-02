@@ -10,21 +10,6 @@ import numpy as np
 import mxnet as mx
 import cv2
 
-data_shape = (320, 32)
-img_channel = 3
-num_label = 80
-alphabet = keys.txt_alphabet
-data_root = '/data1/zj/data/crnn/txt'
-train_fn = '/data/zhy/crnn/Chinese_character/train2.txt'
-val_fn = '/data/zhy/crnn/Chinese_character/test2.txt'
-
-if not os.path.exists(data_root):
-    os.makedirs(data_root)
-label_dict = {}
-for i, char in enumerate(alphabet):
-    label_dict[char] = i
-
-
 def pre_processing(img_path, data_shape, img_channel):
     """
     对图片进行处理，先按照高度进行resize，resize之后如果宽度不足指定宽度，就补黑色像素，否则就强行缩放到指定宽度
@@ -80,6 +65,20 @@ def make_rec(data_txt, prefix, num_label):
     record.close()
     pbar.close()
 
+if __name__ == "__main__":
 
-make_rec(val_fn, data_root + '/val', num_label)
-# make_rec(train_fn, data_root + '/train', num_label)
+    data_shape = (320, 32)
+    img_channel = 3
+    num_label = 80
+    alphabet = keys.txt_alphabet
+    data_root = '.'
+    train_fn = '.'
+    val_fn = '.'
+
+    if not os.path.exists(data_root):
+        os.makedirs(data_root)
+    label_dict = {}
+    for i, char in enumerate(alphabet):
+        label_dict[char] = i
+    make_rec(val_fn, data_root + '/val', num_label)
+    # make_rec(train_fn, data_root + '/train', num_label)
