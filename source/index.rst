@@ -10,8 +10,8 @@ Welcome to crnn.gluon's documentation!
    :maxdepth: 2
    :caption: Contents:
    :glob:
-
-   doc/modules
+    
+   docs/modules
 
    
 Indices and tables
