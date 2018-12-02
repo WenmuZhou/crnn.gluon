@@ -9,3 +9,4 @@ venv/
 *.pyo
 *.log
 *.tmp
+build/
