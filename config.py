@@ -27,7 +27,7 @@ lr_decay_step = 15
 alphabet = keys.txt_alphabet
 display_interval = 100
 restart_training = True
-checkpoint = 'output/resnet_pytorch/13_0.9237533417290824.pth'
+checkpoint = ''
 
 # random seed
 seed = 2
