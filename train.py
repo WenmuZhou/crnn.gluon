@@ -44,19 +44,12 @@ def setup_logger(log_file_path: str = None):
 
 
 def accuracy(predictions, labels, alphabet):
-    predictions1 = predictions.softmax().asnumpy()
-    zipped = zip(decode1(predictions1, alphabet), decode1(labels.asnumpy(), alphabet))
+    predictions = predictions.softmax().asnumpy()
+    zipped = zip(decode1(predictions, alphabet), decode1(labels.asnumpy(), alphabet))
     n_correct = 0
     for (pred, pred_conf), (target, _) in zipped:
         if pred == target:
             n_correct += 1
-    predictions1 = predictions.softmax().topk(axis=2).asnumpy()
-    zipped = zip(decode(predictions1, alphabet), decode(labels.asnumpy(), alphabet))
-    n_correct1 = 0
-    for pred, target in zipped:
-        if pred == target:
-            n_correct1 += 1
-    assert n_correct == n_correct1
     return n_correct
 
 
