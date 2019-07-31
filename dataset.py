@@ -26,9 +26,10 @@ class ImageDataset(Dataset):
         with open(data_txt, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
-                img_path = pathlib.Path(line[0])
-                if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
-                    self.data_list.append((line[0], line[1]))
+                if len(line) > 1:
+                    img_path = pathlib.Path(line[0])
+                    if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
+                        self.data_list.append((line[0], line[1]))
         self.img_h = data_shape[0]
         self.img_w = data_shape[1]
         self.img_channel = img_channel

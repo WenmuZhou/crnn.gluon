@@ -3,17 +3,17 @@
 # @Author  : zhoujun
 import keys
 
-trainfile = '/data/zhy/crnn/Chinese_character/train2.txt'
-testfile = '/data/zhy/crnn/Chinese_character/test2.txt'
+trainfile = 'E:/zj/dataset/train.csv'
+testfile = 'E:/zj/dataset/train.csv'
 output_dir = 'output/test'
 
-gpu_id = 3
-workers = 6
+gpu_id = 0
+workers = 0
 start_epoch = 0
 end_epoch = 100
 
-train_batch_size = 128
-eval_batch_size = 64
+train_batch_size = 4
+eval_batch_size = 4
 # img shape
 img_h = 32
 img_w = 320
@@ -24,8 +24,8 @@ lr = 0.001
 end_lr = 1e-7
 lr_decay = 0.1
 lr_decay_step = 15
-alphabet = keys.txt_alphabet
-display_interval = 100
+alphabet = keys.no_alphabet
+display_interval = 10
 restart_training = True
 checkpoint = ''
 

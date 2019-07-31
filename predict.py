@@ -4,6 +4,7 @@
 
 import os
 import keys
+import numpy as np
 import mxnet as mx
 from mxnet import image, nd
 from mxnet.gluon.data.vision import transforms
@@ -21,13 +22,20 @@ def try_gpu(gpu):
 
 
 def decode(preds, alphabet, raw=False):
-    results = []
+    if len(preds.shape) > 2:
+        preds_idx = preds.argmax(axis=2)
+        preds_prob = preds.max(axis=2)
+    else:
+        preds_idx = preds
+        preds_prob = np.ones_like(preds)
+    result_list = []
     alphabet_size = len(alphabet)
-    for word in preds:
+    for word, prob in zip(preds_idx, preds_prob):
         if raw:
-            results.append(''.join([alphabet[int(i)] for i in word]))
+            result_list.append((''.join([alphabet[int(i)] for i in word]), prob))
         else:
             result = []
+            conf = []
             for i, index in enumerate(word):
                 if i < len(word) - 1 and word[i] == word[i + 1] and word[-1] != -1:  # Hack to decode label as well
                     continue
@@ -35,8 +43,9 @@ def decode(preds, alphabet, raw=False):
                     continue
                 else:
                     result.append(alphabet[int(index)])
-            results.append(''.join(result))
-    return results
+                    conf.append(prob[i])
+            result_list.append((''.join(result), conf))
+    return result_list
 
 
 class GluonNet:
@@ -75,7 +84,7 @@ class GluonNet:
         img1 = img1.as_in_context(self.ctx)
         preds = self.net(img1)
 
-        preds = preds.softmax().topk(axis=2).asnumpy()
+        preds = preds.softmax().asnumpy()
         result = decode(preds, self.alphabet, raw=True)
         print(result)
         result = decode(preds, self.alphabet)

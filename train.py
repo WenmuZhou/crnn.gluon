@@ -4,6 +4,7 @@
 import os
 import time
 import shutil
+from tqdm import tqdm
 import mxnet as mx
 from mxnet import nd, autograd, gluon
 from mxnet.gluon.data import DataLoader
@@ -12,7 +13,7 @@ from mxboard import SummaryWriter
 import config
 from dataset import ImageDataset
 from crnn import CRNN
-from predict import decode
+from predict import decode1,decode,try_gpu
 
 
 def setup_logger(log_file_path: str = None):
@@ -43,18 +44,25 @@ def setup_logger(log_file_path: str = None):
 
 
 def accuracy(predictions, labels, alphabet):
-    predictions = predictions.softmax().topk(axis=2).asnumpy()
-    zipped = zip(decode(predictions, alphabet), decode(labels.asnumpy(), alphabet))
+    predictions1 = predictions.softmax().asnumpy()
+    zipped = zip(decode1(predictions1, alphabet), decode1(labels.asnumpy(), alphabet))
     n_correct = 0
-    for pred, target in zipped:
+    for (pred, pred_conf), (target, _) in zipped:
         if pred == target:
             n_correct += 1
+    predictions1 = predictions.softmax().topk(axis=2).asnumpy()
+    zipped = zip(decode(predictions1, alphabet), decode(labels.asnumpy(), alphabet))
+    n_correct1 = 0
+    for pred, target in zipped:
+        if pred == target:
+            n_correct1 += 1
+    assert n_correct == n_correct1
     return n_correct
 
 
 def evaluate_accuracy(net, dataloader, ctx, alphabet):
     metric = 0
-    for i, (data, label) in enumerate(dataloader):
+    for data, label in tqdm(dataloader,desc='test model'):
         data = data.as_in_context(ctx)
         label = label.as_in_context(ctx)
         output = net(data)
@@ -70,9 +78,9 @@ def train():
     if not os.path.exists(config.output_dir):
         os.makedirs(config.output_dir)
     logger = setup_logger(os.path.join(config.output_dir, 'train_log'))
-    logger.info('train with gpu %s and mxnet %s' % (config.gpu_id, mx.__version__))
+    ctx =try_gpu(config.gpu_id)
+    logger.info('train with %s and mxnet %s' % (ctx, mx.__version__))
 
-    ctx = mx.gpu(config.gpu_id)
     # 设置随机种子
     mx.random.seed(2)
     mx.random.seed(2, ctx=ctx)
@@ -110,7 +118,6 @@ def train():
 
     sw = SummaryWriter(logdir=config.output_dir)
     for epoch in range(config.start_epoch, config.end_epoch):
-        loss = .0
         train_acc = .0
         tick = time.time()
         cur_step = 0
@@ -124,11 +131,10 @@ def train():
             loss_ctc.backward()
             trainer.step(data.shape[0])
 
-            loss_c = loss_ctc.mean()
+            loss_c = loss_ctc.mean().asscalar()
             cur_step = epoch * all_step + i
-            sw.add_scalar(tag='ctc_loss', value=loss_c.asscalar(), global_step=cur_step // 2)
+            sw.add_scalar(tag='ctc_loss', value=loss_c, global_step=cur_step // 2)
             sw.add_scalar(tag='lr', value=trainer.learning_rate, global_step=cur_step // 2)
-            loss += loss_c
             acc = accuracy(output, label, config.alphabet)
             train_acc += acc
             if (i + 1) % config.display_interval == 0:
@@ -139,14 +145,13 @@ def train():
                     '[{}/{}], [{}/{}],step: {}, Speed: {:.3f} samples/sec, ctc loss: {:.4f},acc: {:.4f}, lr:{},'
                     ' time:{:.4f} s'.format(epoch, config.end_epoch, i, all_step, cur_step,
                                             config.display_interval * config.train_batch_size / batch_time,
-                                            loss.asscalar() / config.display_interval, acc, trainer.learning_rate,
+                                            loss_c, acc, trainer.learning_rate,
                                             batch_time))
                 loss = .0
                 tick = time.time()
                 nd.waitall()
         if epoch == 0:
             sw.add_graph(net)
-        logger.info('start val ....')
         train_acc /= train_dataset.__len__()
         validation_accuracy = evaluate_accuracy(net, test_data_loader, ctx, config.alphabet) / test_dataset.__len__()
         sw.add_scalar(tag='val_acc', value=validation_accuracy, global_step=cur_step)
