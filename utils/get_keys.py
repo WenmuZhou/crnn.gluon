@@ -45,7 +45,8 @@ if __name__ == '__main__':
     if os.path.exists('config.json'):
         data = load_json('config.json')
         label_file = data['data_loader']['args']['dataset']['train_data_path']
+        label_file = data['data_loader']['args']['dataset']['val_data_path']
     else:
         label_file = args.label_file
     alphabet = get_key(label_file)
-    np.save('../alphabet.npy', alphabet)
+    np.save('alphabet.npy', alphabet)
