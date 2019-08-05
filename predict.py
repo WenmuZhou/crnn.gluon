@@ -3,12 +3,10 @@
 # @Author  : zhoujun
 
 import os
-import keys
 import numpy as np
 import mxnet as mx
 from mxnet import image, nd
 from mxnet.gluon.data.vision import transforms
-from crnn import CRNN
 
 
 def try_gpu(gpu):
@@ -49,20 +47,20 @@ def decode(preds, alphabet, raw=False):
 
 
 class GluonNet:
-    def __init__(self, model_path, alphabet, img_shape, net, img_channel=3, gpu_id=None):
+    def __init__(self, model_path, gpu_id=None):
         """
         初始化gluon模型
         :param model_path: 模型地址
-        :param alphabet: 字母表
-        :param img_shape: 图像的尺寸(w,h)
-        :param net: 网络计算图，如果在model_path中指定的是参数的保存路径，则需要给出网络的计算图
-        :param img_channel: 图像的通道数: 1,3
         :param gpu_id: 在哪一块gpu上运行
         """
+        config = pickle.load(open(model_path.replace('.params', '.info'),'rb'))['config']
+        alphabet = config['data_loader']['args']['dataset']['alphabet']
+        net = get_model(len(alphabet), config['arch']['args'])
+
         self.gpu_id = gpu_id
-        self.img_w = img_shape[0]
-        self.img_h = img_shape[1]
-        self.img_channel = img_channel
+        self.img_w = config['data_loader']['args']['dataset']['img_w']
+        self.img_h = config['data_loader']['args']['dataset']['img_h']
+        self.img_channel = config['data_loader']['args']['dataset']['img_channel']
         self.alphabet = alphabet
         self.ctx = try_gpu(gpu_id)
         self.net = net
@@ -85,8 +83,8 @@ class GluonNet:
         preds = self.net(img1)
 
         preds = preds.softmax().asnumpy()
-        result = decode(preds, self.alphabet, raw=True)
-        print(result)
+        # result = decode(preds, self.alphabet, raw=True)
+        # print(result)
         result = decode(preds, self.alphabet)
         print(result)
         return result, img
@@ -102,56 +100,34 @@ class GluonNet:
         ratio_h = float(self.img_h) / h
         new_w = int(w * ratio_h)
         img = image.imresize(img, w=new_w, h=self.img_h)
-        if new_w < self.img_w:
-            step = nd.zeros((self.img_h, self.img_w - new_w, self.img_channel), dtype=img.dtype)
-            img = nd.concat(img, step, dim=1)
+        # if new_w < self.img_w:
+        #     step = nd.zeros((self.img_h, self.img_w - new_w, self.img_channel), dtype=img.dtype)
+        #     img = nd.concat(img, step, dim=1)
         return img
 
 
 if __name__ == '__main__':
+    from models import get_model
+    import pickle
     import time
-    from mxnet import gluon
     from matplotlib import pyplot as plt
     from matplotlib.font_manager import FontProperties
 
-    font = FontProperties(fname=r"simsun.ttc", size=14)
+    font = FontProperties(fname=r"msyh.ttc", size=14)
 
-    img_path = '/home/zj/3.jpg'
-    model_path = 'output/crnn_lstm_txt_resnet_2048_dropout_lstm_512_data_augment2/42_0.9894_0.9709.params'
-    alphabet = keys.txt_alphabet
-    print(len(alphabet))
-    net = CRNN(len(alphabet), hidden_size=512)
-    gluon_net = GluonNet(model_path=model_path, alphabet=alphabet, img_shape=(320, 32), img_channel=3, net=net,
-                         gpu_id=2)
+    img_path = 'E:/zj/dataset/train/0_song5_0_3_w.jpg'
+    model_path = 'output/crnn_VGG_RNN_CTC/checkpoint/CRNN_2_loss1.602779_val_acc1.000000.params'
+
+
+    gluon_net = GluonNet(model_path=model_path, gpu_id=None)
     start = time.time()
     result, img = gluon_net.predict(img_path)
     print(time.time() - start)
 
-    gluon_net.net.export('./output/txt4')
-    # img_h = 32
-    # img_w = 320
-    # img = image.imdecode(open(img_path, 'rb').read(), 1)
-    # h, w = img.shape[:2]
-    # ratio_h = float(img_h) / h
-    # new_w = int(w * ratio_h)
-    # img = image.imresize(img, w=new_w, h=img_h)
-    # if new_w < img_w:
-    #     step = nd.zeros((img_h, img_w - new_w, 3), dtype=img.dtype)
-    #     img = nd.concat(img, step, dim=1)
-    #
-    # img = transforms.ToTensor()(img)
-    # img = img.expand_dims(axis=0)
-    # ctx = try_gpu(0)
-    # img = img.as_in_context(ctx)
-    # net = gluon.SymbolBlock.imports('output/all-symbol.json', ['data'], 'output/all-0000.params', ctx=ctx)
-    # for i in range(100):
-    #     start = time.time()
-    #     result = net(img)
-    #     result = result.softmax().topk(axis=2).asnumpy()
-    #     result = decode(result, keys.all_alphabet)
-    #     print(time.time() - start)
-    #
-    label = result[0]
+    # 输出用于部署的模型
+    # gluon_net.net.export('./output/txt4')
+
+    label = result[0][0]
     plt.title(label, fontproperties=font)
     plt.imshow(img.asnumpy().squeeze(), cmap='gray')
     plt.show()
