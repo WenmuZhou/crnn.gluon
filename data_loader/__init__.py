@@ -92,8 +92,8 @@ def get_dataloader(module_name, module_args, num_label):
                               last_batch='keep',
                               num_workers=module_args['loader']['num_workers'])
 
-    val_loader = DataLoader(dataset=val_dataset.transform_first(train_transfroms),
-                            batch_size=module_args['loader']['train_batch_size'],
+    val_loader = DataLoader(dataset=val_dataset.transform_first(val_transfroms),
+                            batch_size=module_args['loader']['val_batch_size'],
                             shuffle=module_args['loader']['shuffle'],
                             last_batch='keep',
                             num_workers=module_args['loader']['num_workers'])

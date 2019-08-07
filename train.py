@@ -13,8 +13,8 @@ from utils import read_json, try_gpu
 
 def main(config):
     if os.path.isfile(config['data_loader']['args']['dataset']['alphabet']):
-        config['data_loader']['args']['dataset']['alphabet'] = str(np.load('alphabet.npy'))
-    config['data_loader']['args']['dataset']['alphabet'] += '嫑'
+        config['data_loader']['args']['dataset']['alphabet'] = str(
+            np.load(config['data_loader']['args']['dataset']['alphabet']))
 
     prediction_type = config['arch']['args']['prediction']['type']
     num_class = len(config['data_loader']['args']['dataset']['alphabet'])
@@ -33,7 +33,7 @@ def main(config):
     img_w = config['data_loader']['args']['dataset']['img_w']
     img_h = config['data_loader']['args']['dataset']['img_h']
     train_loader, val_loader = get_dataloader(config['data_loader']['type'], config['data_loader']['args'],
-                                               num_label=model.get_batch_max_length(img_h=img_h, img_w=img_w, ctx=ctx))
+                                              num_label=model.get_batch_max_length(img_h=img_h, img_w=img_w, ctx=ctx))
 
     config['lr_scheduler']['args']['step'] *= len(train_loader)
     config['name'] = config['name'] + '_' + model.model_name

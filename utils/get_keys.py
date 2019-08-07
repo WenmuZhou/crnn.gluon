@@ -9,7 +9,7 @@ import numpy as np
 from utils import load_json
 
 
-def get_key(label_file_list,show_max_img=False):
+def get_key(label_file_list, show_max_img=False):
     data_list = []
     label_list = []
     max_len = 0
@@ -19,7 +19,7 @@ def get_key(label_file_list,show_max_img=False):
         with open(label_path, 'r', encoding='utf-8') as f:
             for line in tqdm(f.readlines()):
                 line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
-                if len(line)>1:
+                if len(line) > 1:
                     data_list.append(line[0])
                     label_list.append(line[1])
                     max_len = max(max_len, len(line[1]))
@@ -32,6 +32,7 @@ def get_key(label_file_list,show_max_img=False):
         print('max len of label is {}, max img_h is {}, max img_w is {}'.format(max_len, max_h, max_w))
     a = ''.join(sorted(set((''.join(label_list)))))
     return a
+
 
 if __name__ == '__main__':
     # 根据label文本生产key
@@ -48,5 +49,5 @@ if __name__ == '__main__':
         label_file.extend(data['data_loader']['args']['dataset']['val_data_path'])
     else:
         label_file = args.label_file
-    alphabet = get_key(label_file)
+    alphabet = get_key(label_file).replace(' ', '') + '嫑'
     np.save('alphabet.npy', alphabet)
