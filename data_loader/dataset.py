@@ -3,6 +3,7 @@
 # @Author  : zhoujun
 import numpy as np
 from mxnet import image, nd, recordio
+from mxnet.gluon.data import DataLoader
 from mxnet.gluon.data import Dataset, RecordFileDataset
 
 
@@ -134,3 +135,61 @@ class RecordDataset(RecordFileDataset):
         else:
             img = image.imresize(img, w=self.data_shape[1], h=self.data_shape[0])
         return img
+
+
+class Batch_Balanced_Dataset(object):
+    def __init__(self, dataset_list: list, ratio_list: list, module_args: dict, dataset_transfroms,
+                 phase: str = 'train'):
+        """
+        对datasetlist里的dataset按照ratio_list里对应的比例组合，似的每个batch里的数据按按照比例采样的
+        :param dataset_list: 数据集列表
+        :param ratio_list: 比例列表
+        :param module_args: dataloader的配置
+        :param dataset_transfroms: 数据集使用的transforms
+        :param phase: 训练集还是验证集
+        """
+        assert sum(ratio_list) == 1 and len(dataset_list) == len(ratio_list)
+
+        self.dataset_len = 0
+        self.data_loader_list = []
+        self.dataloader_iter_list = []
+        all_batch_size = module_args['loader']['train_batch_size'] if phase == 'train' else module_args['loader'][
+            'val_batch_size']
+        for _dataset, batch_ratio_d in zip(dataset_list, ratio_list):
+            _batch_size = max(round(all_batch_size * float(batch_ratio_d)), 1)
+
+            _data_loader = DataLoader(dataset=_dataset.transform_first(dataset_transfroms),
+                                      batch_size=_batch_size,
+                                      shuffle=module_args['loader']['shuffle'],
+                                      last_batch='rollover',
+                                      num_workers=module_args['loader']['num_workers'])
+            self.data_loader_list.append(_data_loader)
+            self.dataloader_iter_list.append(iter(_data_loader))
+            self.dataset_len += len(_dataset)
+
+    def __iter__(self):
+        return self
+
+    def __len__(self):
+        return min([len(x) for x in self.data_loader_list])
+
+    def __next__(self):
+        balanced_batch_images = []
+        balanced_batch_texts = []
+
+        for i, data_loader_iter in enumerate(self.dataloader_iter_list):
+            try:
+                image, text = next(data_loader_iter)
+                balanced_batch_images.append(image)
+                balanced_batch_texts.append(text)
+            except StopIteration:
+                self.dataloader_iter_list[i] = iter(self.data_loader_list[i])
+                image, text = next(self.dataloader_iter_list[i])
+                balanced_batch_images.append(image)
+                balanced_batch_texts.append(text)
+            except ValueError:
+                pass
+
+        balanced_batch_images = nd.concat(*balanced_batch_images, dim=0)
+        balanced_batch_texts = nd.concat(*balanced_batch_texts, dim=0)
+        return balanced_batch_images, balanced_batch_texts

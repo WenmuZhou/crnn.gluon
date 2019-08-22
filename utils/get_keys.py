@@ -2,6 +2,9 @@
 # @Time    : 2018/8/24 10:20
 # @Author  : zhoujun
 import os
+import sys
+import pathlib
+sys.path.append(str(pathlib.Path(os.path.abspath(__name__)).parent))
 import argparse
 import cv2
 from tqdm import tqdm
@@ -17,7 +20,7 @@ def get_key(label_file_list, show_max_img=False):
     max_w = 0
     for label_path in label_file_list:
         with open(label_path, 'r', encoding='utf-8') as f:
-            for line in tqdm(f.readlines()):
+            for line in tqdm(f.readlines(), desc=label_path):
                 line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
                 if len(line) > 1:
                     data_list.append(line[0])
@@ -42,10 +45,14 @@ if __name__ == '__main__':
     parser.add_argument('--label_file', nargs='+', help='label file', default=[r"E:\\zj\\dataset\\train.csv"])
     args = parser.parse_args()
 
-    print(args)
     if os.path.exists('config.json'):
         data = load_json('config.json')
-        label_file = data['data_loader']['args']['dataset']['train_data_path']
+        label_file = []
+        for train_file in data['data_loader']['args']['dataset']['train_data_path']:
+            if isinstance(train_file, list):
+                label_file.extend(train_file)
+            else:
+                label_file.append(train_file)
         label_file.extend(data['data_loader']['args']['dataset']['val_data_path'])
     else:
         label_file = args.label_file

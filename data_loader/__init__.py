@@ -2,26 +2,11 @@
 # @Time    : 18-11-16 下午5:46
 # @Author  : zhoujun
 import pathlib
-import copy
 import random
 from mxnet.gluon.data import DataLoader
 from mxnet.gluon.data.vision import transforms
 
-from . import data_loaders
-
-
-def get_dataset(data_list, module_name, phase, dataset_args):
-    """
-    获取训练dataset
-    :param data_path: dataset文件列表，每个文件内以如下格式存储 ‘path/to/img\tlabel’
-    :param module_name: 所使用的自定义dataset名称，目前只支持data_loaders.ImageDataset
-    :param phase: 是train or test 阶段
-    :param dataset_args: module_name的参数
-    :return: 如果data_path列表不为空，返回对于的ConcatDataset对象，否则None
-    """
-    dataset = getattr(data_loaders, module_name)(phase=phase, data_list=data_list,
-                                                 **dataset_args)
-    return dataset
+from . import dataset
 
 
 def get_datalist(train_data_path, val_data_path, validation_split=0.1):
@@ -33,14 +18,17 @@ def get_datalist(train_data_path, val_data_path, validation_split=0.1):
     :return:
     """
     train_data_list = []
-    for p in train_data_path:
-        with open(p, 'r', encoding='utf-8') as f:
-            for line in f.readlines():
-                line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
-                if len(line) > 1:
-                    img_path = pathlib.Path(line[0])
-                    if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
-                        train_data_list.append((line[0], line[1]))
+    for train_path in train_data_path:
+        train_data = []
+        for p in train_path:
+            with open(p, 'r', encoding='utf-8') as f:
+                for line in f.readlines():
+                    line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
+                    if len(line) > 1:
+                        img_path = pathlib.Path(line[0])
+                        if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
+                            train_data.append((line[0], line[1]))
+        train_data_list.append(train_data)
 
     val_data_list = []
     for p in val_data_path:
@@ -59,6 +47,18 @@ def get_datalist(train_data_path, val_data_path, validation_split=0.1):
         train_data_list = train_data_list[val_len:]
     return train_data_list, val_data_list
 
+def get_dataset(data_list, module_name, phase, dataset_args):
+    """
+    获取训练dataset
+    :param data_path: dataset文件列表，每个文件内以如下格式存储 ‘path/to/img\tlabel’
+    :param module_name: 所使用的自定义dataset名称，目前只支持data_loaders.ImageDataset
+    :param phase: 是train or test 阶段
+    :param dataset_args: module_name的参数
+    :return: 如果data_path列表不为空，返回对于的ConcatDataset对象，否则None
+    """
+    s_dataset = getattr(dataset, module_name)(phase=phase, data_list=data_list,
+                                              **dataset_args)
+    return s_dataset
 
 def get_dataloader(module_name, module_args, num_label):
     train_transfroms = transforms.Compose([
@@ -70,32 +70,36 @@ def get_dataloader(module_name, module_args, num_label):
     # 创建数据集
     dataset_args = module_args['dataset']
     train_data_path = dataset_args.pop('train_data_path')
+    train_data_ratio = dataset_args.pop('train_data_ratio')
     val_data_path = dataset_args.pop('val_data_path')
 
     train_data_list, val_data_list = get_datalist(train_data_path, val_data_path,
                                                   module_args['loader']['validation_split'])
 
     dataset_args['num_label'] = num_label
-    train_dataset = get_dataset(data_list=train_data_list,
-                                module_name=module_name,
-                                phase='train',
-                                dataset_args=dataset_args)
+    train_dataset_list = []
+    for train_data in train_data_list:
+        train_dataset_list.append(get_dataset(data_list=train_data,
+                                              module_name=module_name,
+                                              phase='train',
+                                              dataset_args=dataset_args))
 
     val_dataset = get_dataset(data_list=val_data_list,
                               module_name=module_name,
                               phase='test',
                               dataset_args=dataset_args)
 
-    train_loader = DataLoader(dataset=train_dataset.transform_first(train_transfroms),
-                              batch_size=module_args['loader']['train_batch_size'],
-                              shuffle=module_args['loader']['shuffle'],
-                              last_batch='keep',
-                              num_workers=module_args['loader']['num_workers'])
+    train_loader = dataset.Batch_Balanced_Dataset(dataset_list=train_dataset_list,
+                                                  ratio_list=train_data_ratio,
+                                                  module_args=module_args,
+                                                  dataset_transfroms=train_transfroms,
+                                                  phase='train')
 
     val_loader = DataLoader(dataset=val_dataset.transform_first(val_transfroms),
                             batch_size=module_args['loader']['val_batch_size'],
                             shuffle=module_args['loader']['shuffle'],
-                            last_batch='keep',
+                            last_batch='rollover',
                             num_workers=module_args['loader']['num_workers'])
+    val_loader.dataset_len = len(val_dataset)
 
     return train_loader, val_loader

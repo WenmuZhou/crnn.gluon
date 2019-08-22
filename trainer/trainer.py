@@ -5,8 +5,7 @@ import torch
 import time
 import Levenshtein
 from tqdm import tqdm
-import mxnet as mx
-from mxnet import autograd, gluon
+from mxnet import autograd
 
 from base import BaseTrainer
 from predict import decode
@@ -19,17 +18,14 @@ class Trainer(BaseTrainer):
         self.train_loader_len = len(train_loader)
         self.val_loader_len = len(val_loader)
         self.val_loader = val_loader
-        self.val_dataset_len = self.val_loader._dataset._data.__len__()
-
-        self.train_dataset_len = self.train_loader._dataset._data.__len__()
 
         self.alphabet = self.config['data_loader']['args']['dataset']['alphabet']
 
         self.logger.info(
             'train dataset has {} samples,{} in dataloader, val dataset has {} samples,{} in dataloader'.format(
-                self.train_dataset_len,
+                self.train_loader.dataset_len,
                 self.train_loader_len,
-                self.val_dataset_len,
+                self.val_loader.dataset_len,
                 self.val_loader_len))
 
     def _train_epoch(self, epoch):
@@ -37,6 +33,8 @@ class Trainer(BaseTrainer):
         batch_start = time.time()
         train_loss = 0.
         for i, (images, labels) in enumerate(self.train_loader):
+            if i >= self.train_loader_len:
+                break
             self.global_step += 1
             images = images.as_in_context(self.ctx)
             labels = labels.as_in_context(self.ctx)
@@ -97,8 +95,8 @@ class Trainer(BaseTrainer):
         if self.val_loader is not None:
             epoch_eval_dict = self._eval()
 
-            val_acc = epoch_eval_dict['n_correct'] / self.val_dataset_len
-            edit_dis = epoch_eval_dict['edit_dis'] / self.val_dataset_len
+            val_acc = epoch_eval_dict['n_correct'] / self.val_loader.dataset_len
+            edit_dis = epoch_eval_dict['edit_dis'] / self.val_loader.dataset_len
 
             if self.tensorboard_enable:
                 self.writer.add_scalar('EVAL/acc', val_acc, self.global_step)
@@ -113,6 +111,7 @@ class Trainer(BaseTrainer):
             if val_acc > self.metrics['val_acc']:
                 save_best = True
                 self.metrics['val_acc'] = val_acc
+                self.metrics['train_loss'] = self.epoch_result['train_loss']
                 self.metrics['best_model'] = net_save_path
         else:
             net_save_path = '{}/CRNN_{}_loss{:.6f}.params'.format(self.checkpoint_dir,

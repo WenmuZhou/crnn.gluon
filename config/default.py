@@ -28,7 +28,8 @@ data_loader = {
     "type": "ImageDataset",  # selecting data loader
     "args": {
         'dataset': {
-            'train_data_path': ['train.txt', 'train1.txt'],
+            'train_data_path': [['dataset1.txt1', 'dataset1.txt2'], ['dataset2.txt1', 'dataset2.txt2']],
+            'train_data_ratio': [0.5, 0.5],
             'val_data_path': ['val.txt'],
             'img_h': 32,
             'img_w': 320,
@@ -41,7 +42,6 @@ data_loader = {
             'train_batch_size': 16,
             'val_batch_size': 4,
             'shuffle': True,
-            'pin_memory': False,
             'num_workers': 6
         }
     }

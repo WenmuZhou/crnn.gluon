@@ -6,23 +6,26 @@ import json
 from collections import OrderedDict
 from pathlib import Path
 
+
 def setup_logger(log_file_path: str = None):
     import logging
     from colorlog import ColoredFormatter
-    logging.basicConfig(filename=log_file_path, format='%(asctime)s %(levelname)-8s %(filename)s: %(message)s',
+    logging.basicConfig(filename=log_file_path,
+                        format='%(asctime)s %(levelname)-8s %(filename)s[line:%(lineno)d]: %(message)s',
                         # 定义输出log的格式
                         datefmt='%Y-%m-%d %H:%M:%S', )
     """Return a logger with a default ColoredFormatter."""
-    formatter = ColoredFormatter("%(asctime)s %(log_color)s%(levelname)-8s %(reset)s %(filename)s: %(message)s",
-                                 datefmt='%Y-%m-%d %H:%M:%S',
-                                 reset=True,
-                                 log_colors={
-                                     'DEBUG': 'blue',
-                                     'INFO': 'green',
-                                     'WARNING': 'yellow',
-                                     'ERROR': 'red',
-                                     'CRITICAL': 'red',
-                                 })
+    formatter = ColoredFormatter(
+        "%(asctime)s %(log_color)s%(levelname)-8s %(reset)s %(filename)s[line:%(lineno)d]: %(message)s",
+        datefmt='%Y-%m-%d %H:%M:%S',
+        reset=True,
+        log_colors={
+            'DEBUG': 'blue',
+            'INFO': 'green',
+            'WARNING': 'yellow',
+            'ERROR': 'red',
+            'CRITICAL': 'red',
+        })
 
     logger = logging.getLogger('project')
     handler = logging.StreamHandler()
@@ -56,17 +59,18 @@ def load_json(json_path):
 
 
 def read_json(fname):
-    if isinstance(fname,str):
+    if isinstance(fname, str):
         fname = Path(fname)
     with fname.open('rt') as handle:
         return json.load(handle)
 
 
 def write_json(content, fname):
-    if isinstance(fname,str):
+    if isinstance(fname, str):
         fname = Path(fname)
     with fname.open('wt') as handle:
         json.dump(content, handle, indent=4, sort_keys=False)
+
 
 def try_gpu(gpu):
     import mxnet as mx
