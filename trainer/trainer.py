@@ -16,8 +16,8 @@ class Trainer(BaseTrainer):
         super(Trainer, self).__init__(config, model, criterion, ctx)
         self.train_loader = train_loader
         self.train_loader_len = len(train_loader)
-        self.val_loader_len = len(val_loader) if val_loader is not None else 0
         self.val_loader = val_loader
+        self.val_loader_len = len(val_loader) if val_loader is not None else 0
 
         self.alphabet = self.config['data_loader']['args']['dataset']['alphabet']
 
