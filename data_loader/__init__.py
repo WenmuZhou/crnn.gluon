@@ -23,7 +23,8 @@ def get_datalist(train_data_path, val_data_path, validation_split=0.1):
         for p in train_path:
             with open(p, 'r', encoding='utf-8') as f:
                 for line in f.readlines():
-                    line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
+                    line = line.strip('\n').replace(
+                        '.jpg ', '.jpg\t').split('\t')
                     if len(line) > 1:
                         img_path = pathlib.Path(line[0])
                         if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
@@ -47,6 +48,7 @@ def get_datalist(train_data_path, val_data_path, validation_split=0.1):
         train_data_list = train_data_list[val_len:]
     return train_data_list, val_data_list
 
+
 def get_dataset(data_list, module_name, phase, dataset_args):
     """
     获取训练dataset
@@ -59,6 +61,7 @@ def get_dataset(data_list, module_name, phase, dataset_args):
     s_dataset = getattr(dataset, module_name)(phase=phase, data_list=data_list,
                                               **dataset_args)
     return s_dataset
+
 
 def get_dataloader(module_name, module_args, num_label):
     train_transfroms = transforms.Compose([
@@ -84,22 +87,31 @@ def get_dataloader(module_name, module_args, num_label):
                                               phase='train',
                                               dataset_args=dataset_args))
 
-    val_dataset = get_dataset(data_list=val_data_list,
-                              module_name=module_name,
-                              phase='test',
-                              dataset_args=dataset_args)
-
-    train_loader = dataset.Batch_Balanced_Dataset(dataset_list=train_dataset_list,
-                                                  ratio_list=train_data_ratio,
-                                                  module_args=module_args,
-                                                  dataset_transfroms=train_transfroms,
-                                                  phase='train')
-
-    val_loader = DataLoader(dataset=val_dataset.transform_first(val_transfroms),
-                            batch_size=module_args['loader']['val_batch_size'],
-                            shuffle=module_args['loader']['shuffle'],
-                            last_batch='rollover',
-                            num_workers=module_args['loader']['num_workers'])
-    val_loader.dataset_len = len(val_dataset)
-
+    if len(train_dataset_list) > 1:
+        train_loader = dataset.Batch_Balanced_Dataset(dataset_list=train_dataset_list,
+                                                      ratio_list=train_data_ratio,
+                                                      module_args=module_args,
+                                                      dataset_transfroms=train_transfroms,
+                                                      phase='train')
+    elif len(train_dataset_list) == 1:
+        train_loader = DataLoader(dataset=train_dataset_list[0].transform_first(val_transfroms),
+                                  batch_size=module_args['loader']['train_batch_size'],
+                                  shuffle=module_args['loader']['shuffle'],
+                                  last_batch='rollover',
+                                  num_workers=module_args['loader']['num_workers'])
+    else:
+        raise Exception('no images found')
+    if len(val_data_list):
+        val_dataset = get_dataset(data_list=val_data_list,
+                                  module_name=module_name,
+                                  phase='test',
+                                  dataset_args=dataset_args)
+        val_loader = DataLoader(dataset=val_dataset.transform_first(val_transfroms),
+                                batch_size=module_args['loader']['val_batch_size'],
+                                shuffle=module_args['loader']['shuffle'],
+                                last_batch='rollover',
+                                num_workers=module_args['loader']['num_workers'])
+        val_loader.dataset_len = len(val_dataset)
+    else:
+        val_loader = None
     return train_loader, val_loader
