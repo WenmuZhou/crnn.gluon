@@ -99,6 +99,7 @@ def get_dataloader(module_name, module_args, num_label):
                                   shuffle=module_args['loader']['shuffle'],
                                   last_batch='rollover',
                                   num_workers=module_args['loader']['num_workers'])
+        train_loader.dataset_len = len(train_dataset_list[0])
     else:
         raise Exception('no images found')
     if len(val_data_list):
