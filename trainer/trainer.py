@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2018/8/23 22:20
 # @Author  : zhoujun
-import torch
 import time
 import Levenshtein
 from tqdm import tqdm
