@@ -94,7 +94,7 @@ def get_dataloader(module_name, module_args, num_label):
                                                       dataset_transfroms=train_transfroms,
                                                       phase='train')
     elif len(train_dataset_list) == 1:
-        train_loader = DataLoader(dataset=train_dataset_list[0].transform_first(val_transfroms),
+        train_loader = DataLoader(dataset=train_dataset_list[0].transform_first(train_transfroms),
                                   batch_size=module_args['loader']['train_batch_size'],
                                   shuffle=module_args['loader']['shuffle'],
                                   last_batch='rollover',
