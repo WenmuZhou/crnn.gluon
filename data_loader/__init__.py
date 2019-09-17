@@ -42,10 +42,11 @@ def get_datalist(train_data_path, val_data_path, validation_split=0.1):
                         val_data_list.append((line[0], line[1]))
 
     if len(val_data_path) == 0:
-        val_len = int(len(train_data_list) * validation_split)
-        random.shuffle(train_data_list)
-        val_data_list = train_data_list[:val_len]
-        train_data_list = train_data_list[val_len:]
+        for i,train_data in enumerate(train_data_list):
+            val_len = int(len(train_data) * validation_split)
+            random.shuffle(train_data)
+            val_data_list.extend(train_data[:val_len])
+            train_data_list[i] = train_data[val_len:]
     return train_data_list, val_data_list
 
 
