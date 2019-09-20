@@ -157,7 +157,7 @@ class BaseTrainer:
         self.logger.info("Loading checkpoint: {} ...".format(resume_path))
 
         # 加载模型参数
-        self.model.load_parameters(resume_path, ctx=self.ctx)
+        self.model.load_parameters(resume_path, ctx=self.ctx, ignore_extra=True, allow_missing=True)
         # 加载trainer状态
         trainer_filename = resume_path.replace('.params', '.train_states')
         if os.path.exists(trainer_filename):
