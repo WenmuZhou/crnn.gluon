@@ -6,7 +6,6 @@
             "dataset": {
                 "train_data_path": [
                     [
-                        "E:\\zj\\dataset\\train.csv",
                         "E:\\zj\\dataset\\train.csv"
                     ],
                     [
@@ -24,7 +23,8 @@
                 "img_w": 320,
                 "img_channel": 3,
                 "num_label": 80,
-                "alphabet": "alphabet.npy"
+                "alphabet": "alphabet.npy",
+                "ignore_chinese_punctuation": true
             },
             "loader": {
                 "validation_split": 0.1,
@@ -42,7 +42,7 @@
                 "type": "VGG"
             },
             "sequence_model": {
-                "type": "RNN",
+                "type": "CNN",
                 "args": {
                     "hidden_size": 512,
                     "num_layers": 1

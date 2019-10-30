@@ -23,8 +23,7 @@ def get_datalist(train_data_path, val_data_path, validation_split=0.1):
         for p in train_path:
             with open(p, 'r', encoding='utf-8') as f:
                 for line in f.readlines():
-                    line = line.strip('\n').replace(
-                        '.jpg ', '.jpg\t').split('\t')
+                    line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
                     if len(line) > 1:
                         img_path = pathlib.Path(line[0])
                         if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
@@ -42,7 +41,7 @@ def get_datalist(train_data_path, val_data_path, validation_split=0.1):
                         val_data_list.append((line[0], line[1]))
 
     if len(val_data_path) == 0:
-        for i,train_data in enumerate(train_data_list):
+        for i, train_data in enumerate(train_data_list):
             val_len = int(len(train_data) * validation_split)
             random.shuffle(train_data)
             val_data_list.extend(train_data[:val_len])

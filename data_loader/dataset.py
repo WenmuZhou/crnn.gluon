@@ -6,10 +6,12 @@ from mxnet import image, nd, recordio
 from mxnet.gluon.data import DataLoader
 from mxnet.gluon.data import Dataset, RecordFileDataset
 
+from utils import punctuation_mend
+
 
 class ImageDataset(Dataset):
     def __init__(self, data_list: list, img_h: int, img_w: int, img_channel: int, num_label: int,
-                 alphabet: str, phase: str = 'train'):
+                 alphabet: str, ignore_chinese_punctuation, phase: str = 'train'):
         """
         数据集初始化
         :param data_txt: 存储着图片路径和对于label的文件
@@ -28,6 +30,7 @@ class ImageDataset(Dataset):
         self.num_label = num_label
         self.alphabet = alphabet
         self.phase = phase
+        self.ignore_chinese_punctuation = ignore_chinese_punctuation
         self.label_dict = {}
         for i, char in enumerate(self.alphabet):
             self.label_dict[char] = i
@@ -35,6 +38,8 @@ class ImageDataset(Dataset):
     def __getitem__(self, idx):
         img_path, label = self.data_list[idx]
         label = label.replace(' ', '')
+        if self.ignore_chinese_punctuation:
+            label = punctuation_mend(label)
         try:
             label = self.label_enocder(label)
         except Exception as e:
@@ -94,11 +99,13 @@ class RecordDataset(RecordFileDataset):
     Each sample is an image and its corresponding label
     """
 
-    def __init__(self, filename, data_shape: tuple, img_channel: int, num_label: int):
+    def __init__(self, filename, img_h: int, img_w: int, img_channel: int, num_label: int, phase: str = 'train'):
         super(RecordDataset, self).__init__(filename)
-        self.data_shape = data_shape
+        self.img_h = img_h
+        self.img_w = img_w
         self.img_channel = img_channel
         self.num_label = num_label
+        self.phase = phase
 
     def __getitem__(self, idx):
         record = super(RecordDataset, self).__getitem__(idx)
@@ -113,9 +120,6 @@ class RecordDataset(RecordFileDataset):
         :param label: label字符串
         :return: 索引列表
         """
-        label = nd.array(label)
-        tmp_label = nd.zeros(self.num_label - len(label), dtype=np.float32) - 1
-        label = nd.concat(label, tmp_label, dim=0)
         return label
 
     def pre_processing(self, img):
@@ -124,16 +128,28 @@ class RecordDataset(RecordFileDataset):
         :param img_path: 图片
         :return:
         """
+        data_augment = False
+        if self.phase == 'train' and np.random.rand() > 0.5:
+            data_augment = True
+        if data_augment:
+            img_h = 40
+            img_w = 340
+        else:
+            img_h = self.img_h
+            img_w = self.img_w
         img = image.imdecode(img, 1 if self.img_channel == 3 else 0)
         h, w = img.shape[:2]
-        ratio_h = float(self.data_shape[0]) / h
+        ratio_h = float(img_h) / h
         new_w = int(w * ratio_h)
-        if new_w < self.data_shape[1]:
-            img = image.imresize(img, w=new_w, h=self.data_shape[0])
-            step = nd.zeros((self.data_shape[0], self.data_shape[1] - new_w, self.img_channel), dtype=img.dtype)
+        if new_w < img_w:
+            img = image.imresize(img, w=new_w, h=img_h)
+            step = nd.zeros((img_h, img_w - new_w, self.img_channel), dtype=img.dtype)
             img = nd.concat(img, step, dim=1)
         else:
-            img = image.imresize(img, w=self.data_shape[1], h=self.data_shape[0])
+            img = image.imresize(img, w=img_w, h=img_h)
+
+        if data_augment:
+            img, _ = image.random_crop(img, (self.img_w, self.img_h))
         return img
 
 
@@ -193,3 +209,25 @@ class Batch_Balanced_Dataset(object):
         balanced_batch_images = nd.concat(*balanced_batch_images, dim=0)
         balanced_batch_texts = nd.concat(*balanced_batch_texts, dim=0)
         return balanced_batch_images, balanced_batch_texts
+
+
+if __name__ == '__main__':
+    from mxnet.gluon.data.vision import transforms
+
+    train_transfroms = transforms.Compose([
+        transforms.RandomColorJitter(brightness=0.5),
+        transforms.ToTensor()
+    ])
+    dataset = RecordDataset(r'E:\zj\dataset\rec_train\train.rec', img_h=32, img_w=320, img_channel=3, num_label=80)
+    data_loader = DataLoader(dataset=dataset.transform_first(train_transfroms),
+                             batch_size=1,
+                             shuffle=True,
+                             last_batch='rollover',
+                             num_workers=2)
+    for i, (images, labels) in enumerate(data_loader):
+        print(images.shape)
+        print(labels)
+        img = images[0].asnumpy().transpose((1,2,0))
+        from matplotlib import pyplot as plt
+        plt.imshow(img)
+        plt.show()

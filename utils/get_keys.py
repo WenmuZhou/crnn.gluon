@@ -4,15 +4,16 @@
 import os
 import sys
 import pathlib
+
 sys.path.append(str(pathlib.Path(os.path.abspath(__name__)).parent))
 import argparse
 import cv2
 from tqdm import tqdm
 import numpy as np
-from utils import load_json
+from utils import load_json, punctuation_mend
 
 
-def get_key(label_file_list, show_max_img=False):
+def get_key(label_file_list, ignore_chinese_punctuation, show_max_img=False):
     data_list = []
     label_list = []
     max_len = 0
@@ -24,7 +25,10 @@ def get_key(label_file_list, show_max_img=False):
                 line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
                 if len(line) > 1:
                     data_list.append(line[0])
-                    label_list.append(line[1])
+                    label = line[1]
+                    if ignore_chinese_punctuation:
+                        label = punctuation_mend(label)
+                    label_list.append(label)
                     max_len = max(max_len, len(line[1]))
                     if show_max_img:
                         img = cv2.imread(line[0])
@@ -54,7 +58,9 @@ if __name__ == '__main__':
             else:
                 label_file.append(train_file)
         label_file.extend(data['data_loader']['args']['dataset']['val_data_path'])
+        ignore_chinese_punctuation = data['data_loader']['args']['dataset']['ignore_chinese_punctuation']
     else:
+        ignore_chinese_punctuation = True
         label_file = args.label_file
-    alphabet = get_key(label_file).replace(' ', '') + '嫑'
+    alphabet = get_key(label_file, ignore_chinese_punctuation).replace(' ', '') + '嫑'
     np.save('alphabet.npy', alphabet)

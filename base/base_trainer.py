@@ -6,6 +6,7 @@ import os
 import pickle
 import shutil
 import pathlib
+import numpy as np
 from pprint import pformat
 import mxnet as mx
 from mxnet import nd, gluon
@@ -25,13 +26,14 @@ class BaseTrainer:
         config['trainer']['output_dir'] = os.path.join(str(pathlib.Path(os.path.abspath(__name__)).parent),
                                                        config['trainer']['output_dir'])
         save_dir = os.path.join(config['trainer']['output_dir'], config['name'])
-        self.checkpoint_dir = os.path.join(config['trainer']['output_dir'], config['name'], 'checkpoint')
+        self.checkpoint_dir = os.path.join(save_dir, 'checkpoint')
 
         if config['trainer']['resume']['restart_training']:
             shutil.rmtree(save_dir, ignore_errors=True)
         if not os.path.exists(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
-
+        # 保存本次实验的alphabet 到模型保存的地方
+        np.save(os.path.join(save_dir, 'alphabet.npy'), config['data_loader']['args']['dataset']['alphabet'])
         self.global_step = 0
         self.start_epoch = 1
         self.config = config
@@ -48,7 +50,7 @@ class BaseTrainer:
 
         self.logger = setup_logger(os.path.join(save_dir, 'train_log'))
         self.logger.info(pformat(self.config))
-
+        self.logger.info(self.model)
         # device set
         self.ctx = ctx
         mx.random.seed(2)  # 为CPU设置随机种子
