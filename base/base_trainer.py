@@ -86,6 +86,11 @@ class BaseTrainer:
         """
         Full training logic
         """
+        try:
+            for i, (images, labels) in enumerate(self.train_loader):
+                pass
+        except:
+            self.logger.info(traceback.format_exc())
         for epoch in range(self.start_epoch, self.epochs + 1):
             try:
                 self.epoch_result = self._train_epoch(epoch)

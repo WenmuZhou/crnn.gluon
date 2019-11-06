@@ -29,6 +29,7 @@ class Model(HybridBlock):
         self.prediction_type = config['prediction']['type']
         if self.prediction_type == 'CTC':
             self.prediction = nn.Dense(units=n_class, flatten=False)
+            # self.prediction = nn.Conv1D(n_class,1)
         else:
             raise NotImplementedError
         self.model_name = '{}_{}_{}'.format(feature_extraction_type, sequence_model_type,
@@ -38,6 +39,7 @@ class Model(HybridBlock):
 
     def get_batch_max_length(self, img_h, img_w, ctx):
         input = nd.zeros((2, 3, img_h, img_w), ctx=ctx)
+        self(input)
         # 特征提取阶段
         visual_feature = self.feature_extraction(input)
         self.batch_max_length = visual_feature.shape[-1]

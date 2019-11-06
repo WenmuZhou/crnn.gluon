@@ -39,10 +39,10 @@
         "type": "crnnModel",
         "args": {
             "feature_extraction": {
-                "type": "VGG"
+                "type": "DenseNet"
             },
             "sequence_model": {
-                "type": "CNN",
+                "type": "RNN",
                 "args": {
                     "hidden_size": 512,
                     "num_layers": 1

@@ -25,7 +25,7 @@ python3 utils/get_keys.py
 ```
 2. use following script to run
 ```sh
-python3 train.py
+python3 train.py --config_path config.json
 ```
 
 ## Predict 

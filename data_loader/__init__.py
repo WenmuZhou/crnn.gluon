@@ -3,6 +3,7 @@
 # @Author  : zhoujun
 import pathlib
 import random
+from tqdm import tqdm
 from mxnet.gluon.data import DataLoader
 from mxnet.gluon.data.vision import transforms
 
@@ -22,7 +23,7 @@ def get_datalist(train_data_path, val_data_path, validation_split=0.1):
         train_data = []
         for p in train_path:
             with open(p, 'r', encoding='utf-8') as f:
-                for line in f.readlines():
+                for line in tqdm(f.readlines(), desc='reading data:' + p):
                     line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
                     if len(line) > 1:
                         img_path = pathlib.Path(line[0])
@@ -70,16 +71,21 @@ def get_dataloader(module_name, module_args, num_label):
     ])
 
     val_transfroms = transforms.ToTensor()
-    # 创建数据集
     dataset_args = module_args['dataset']
+    dataset_args['num_label'] = num_label
+    # 创建数据集
     train_data_path = dataset_args.pop('train_data_path')
     train_data_ratio = dataset_args.pop('train_data_ratio')
     val_data_path = dataset_args.pop('val_data_path')
 
-    train_data_list, val_data_list = get_datalist(train_data_path, val_data_path,
-                                                  module_args['loader']['validation_split'])
-
-    dataset_args['num_label'] = num_label
+    if module_name == 'ImageDataset':
+        train_data_list, val_data_list = get_datalist(train_data_path, val_data_path,
+                                                      module_args['loader']['validation_split'])
+    elif module_name == 'LmdbDataset':
+        train_data_list = train_data_path
+        val_data_list = val_data_path
+    else:
+        raise Exception('current only support ImageDataset and LmdbDataset')
     train_dataset_list = []
     for train_data in train_data_list:
         train_dataset_list.append(get_dataset(data_list=train_data,
@@ -110,7 +116,7 @@ def get_dataloader(module_name, module_args, num_label):
         val_loader = DataLoader(dataset=val_dataset.transform_first(val_transfroms),
                                 batch_size=module_args['loader']['val_batch_size'],
                                 shuffle=module_args['loader']['shuffle'],
-                                last_batch='rollover',
+                                last_batch='keep',
                                 num_workers=module_args['loader']['num_workers'])
         val_loader.dataset_len = len(val_dataset)
     else:

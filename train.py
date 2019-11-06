@@ -2,6 +2,7 @@
 # @Time    : 2018/8/23 22:20
 # @Author  : zhoujun
 import os
+import argparse
 import numpy as np
 from mxnet.gluon.loss import CTCLoss
 
@@ -47,5 +48,8 @@ def main(config):
 
 
 if __name__ == '__main__':
-    config = read_json('config.json')
+    parser = argparse.ArgumentParser(description='crnn.gluon')
+    parser.add_argument('--config_path', type=str, help='which config file to run')
+    args = parser.parse_args()
+    config = read_json(args.config_path)
     main(config)

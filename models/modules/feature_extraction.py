@@ -59,8 +59,6 @@ class ResNet(HybridBlock):
                     nn.Activation('relu'),
                     # nn.MaxPool2D(pool_size=2, strides=2),
                     nn.Conv2D(64, 2, strides=2, use_bias=False),
-                    nn.BatchNorm(),
-                    nn.Activation('relu'),
                     BasicBlockV2(64, 1, True),
                     BasicBlockV2(128, 1, True),
                     nn.Dropout(0.2),
@@ -72,6 +70,8 @@ class ResNet(HybridBlock):
                     nn.Conv2D(256, 2, strides=(2, 1), padding=(0, 1), use_bias=False),
 
                     BasicBlockV2(512, 1, True),
+                    nn.BatchNorm(),
+                    nn.Activation('relu'),
 
                     nn.Conv2D(1024, 3, padding=0, use_bias=False),
                     nn.BatchNorm(),
@@ -101,31 +101,33 @@ class DenseNet(HybridBlock):
         super(DenseNet, self).__init__()
         with self.name_scope():
             self.features = nn.HybridSequential()
-            self.features.add(
-                nn.Conv2D(64, 3, padding=1, use_bias=False),
-                nn.BatchNorm(),
-                nn.Activation('relu'),
-                # nn.MaxPool2D(pool_size=2, strides=2),
-                nn.Conv2D(64, 2, strides=2, use_bias=False),
-            )
+            self.features.add(nn.Conv2D(64, 5, padding=2, strides=2, use_bias=False))
             self.features.add(_make_dense_block(8, 4, 8, 0, 1))
             self.features.add(_make_transition(128, 2, 0, 0.2))
 
             self.features.add(_make_dense_block(8, 4, 8, 0, 2))
-            self.features.add(_make_transition(192, (2, 1), (0, 1), 0.2))
+            self.features.add(_make_transition(128, (2, 1), 0, 0.2))
 
             self.features.add(_make_dense_block(8, 4, 8, 0, 3))
 
             self.features.add(
                 nn.BatchNorm(),
-                nn.Activation('relu'),
-                nn.Conv2D(512, 3, padding=0, use_bias=False),
-                nn.BatchNorm(),
-                nn.Activation('relu'),
-                nn.Conv2D(1024, 2, padding=(0, 1), use_bias=False),
-                nn.BatchNorm(),
                 nn.Activation('relu')
             )
 
     def hybrid_forward(self, F, x, *args, **kwargs):
-        return self.features(x)
+        x = self.features(x)
+        x = x.reshape((0, -1, 1, 0))
+        return x
+
+if __name__ == '__main__':
+    from mxnet import nd
+    import mxnet as mx
+
+    ctx = mx.gpu(0)
+    input = nd.zeros((1, 1, 32, 320),ctx=ctx)
+    net = DenseNet()
+    net.hybridize()
+    net.initialize(ctx=ctx)
+    y = net(input)
+    print(y.shape)
