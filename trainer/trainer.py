@@ -71,7 +71,7 @@ class Trainer(BaseTrainer):
                 self.logger.info(
                     '[{}/{}], [{}/{}], global_step: {}, Speed: {:.1f} samples/sec, ctc loss:{:.4f}, acc:{:.4f}, edit_dis:{:.4f} lr:{}, time:{:.2f}'.format(
                         epoch, self.epochs, i + 1, self.train_loader_len, self.global_step,
-                        self.display_interval * cur_batch_size / batch_time,
+                                            self.display_interval * cur_batch_size / batch_time,
                         loss, acc, edit_dis, self.trainer.learning_rate, batch_time))
                 batch_start = time.time()
         return {'train_loss': train_loss / self.train_loader_len, 'time': time.time() - epoch_start, 'epoch': epoch}
@@ -92,6 +92,7 @@ class Trainer(BaseTrainer):
         self.logger.info('[{}/{}], train_loss: {:.4f}, time: {:.4f}, lr: {}'.format(
             self.epoch_result['epoch'], self.epochs, self.epoch_result['train_loss'], self.epoch_result['time'],
             self.trainer.learning_rate))
+        net_save_path = '{}/CRNN_latest.params'.format(self.checkpoint_dir)
 
         save_best = False
         if self.val_loader is not None:
@@ -108,25 +109,17 @@ class Trainer(BaseTrainer):
             self.logger.info(
                 '[{}/{}], val_acc: {:.6f}'.format(self.epoch_result['epoch'], self.epochs, val_acc))
 
-            net_save_path = '{}/CRNN_{}_loss{:.6f}_val_acc{:.6f}.params'.format(self.checkpoint_dir,
-                                                                                self.epoch_result['epoch'],
-                                                                                self.epoch_result['train_loss'],
-                                                                                val_acc)
             if val_acc > self.metrics['val_acc']:
                 save_best = True
                 self.metrics['val_acc'] = val_acc
                 self.metrics['train_loss'] = self.epoch_result['train_loss']
                 self.metrics['best_model'] = net_save_path
         else:
-            net_save_path = '{}/CRNN_{}_loss{:.6f}.params'.format(self.checkpoint_dir,
-                                                                  self.epoch_result['epoch'],
-                                                                  self.epoch_result['train_loss'])
             if self.epoch_result['train_loss'] < self.metrics['train_loss']:
                 save_best = True
                 self.metrics['train_loss'] = self.epoch_result['train_loss']
                 self.metrics['best_model'] = net_save_path
-        self._save_checkpoint(
-            self.epoch_result['epoch'], net_save_path, save_best)
+        self._save_checkpoint(self.epoch_result['epoch'], net_save_path, save_best)
 
     def accuracy_batch(self, predictions, labels, phase):
         predictions = predictions.softmax().asnumpy()
