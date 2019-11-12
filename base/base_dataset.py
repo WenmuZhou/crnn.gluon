@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2019/11/6 15:08
 # @Author  : zhoujun
+import numpy as np
 from mxnet import image, nd
 from mxnet.gluon.data import Dataset
 
@@ -15,7 +16,7 @@ class BaseDataset(Dataset):
         :param num_label: 最大字符个数,应该和网络最终输出的序列宽度一样
         :param alphabet: 字母表
         """
-        super(ImageDataset, self).__init__()
+        super().__init__()
         assert phase in ['train', 'test']
 
         self.img_h = img_h

@@ -94,7 +94,7 @@ class LmdbDataset(BaseDataset):
 
                 # By default, images containing characters which are not in opt.character are filtered.
                 # You can add [UNK] token to `opt.character` in utils.py instead of this filtering.
-                out_of_char = f'[^{self.alphabet}]'
+                out_of_char = '[^{}]'.format(self.alphabet)
                 if re.search(out_of_char, label.lower()):
                     continue
 
@@ -124,7 +124,7 @@ class LmdbDataset(BaseDataset):
                     img = Image.open(buf).convert('L')
 
             except IOError:
-                print(f'Corrupted image for {index}')
+                print('Corrupted image for {}'.format(index))
                 # make dummy image and dummy label for corrupted image.
                 if self.img_channel == 3:
                     img = Image.new('RGB', (self.img_w, self.img_h))
@@ -133,7 +133,7 @@ class LmdbDataset(BaseDataset):
                 label = '[dummy_label]'
 
             # We only train and evaluate on alphanumerics (or pre-defined character set in train.py)
-            out_of_char = f'[^{self.alphabet}]'
+            out_of_char = '[^{}]'.format(self.alphabet)
             label = re.sub(out_of_char, '', label)
             label = self.label_enocder(label)
             img = nd.array(np.array(img))

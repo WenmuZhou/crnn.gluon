@@ -49,7 +49,7 @@ def main(config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='crnn.gluon')
-    parser.add_argument('--config_path', type=str, help='which config file to run')
+    parser.add_argument('--config_path', type=str, default='config.json', help='which config file to run')
     args = parser.parse_args()
     config = read_json(args.config_path)
     main(config)

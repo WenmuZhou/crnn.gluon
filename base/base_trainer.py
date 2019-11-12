@@ -15,12 +15,6 @@ import traceback
 from utils import setup_logger, try_gpu
 
 
-class TRAIN_STATE:
-    def __init__(self):
-        self.epoch = 0
-        self.lr = 0
-
-
 class BaseTrainer:
     def __init__(self, config, model, criterion, ctx):
         config['trainer']['output_dir'] = os.path.join(str(pathlib.Path(os.path.abspath(__name__)).parent),
@@ -46,7 +40,7 @@ class BaseTrainer:
         self.display_interval = self.config['trainer']['display_interval']
         if self.tensorboard_enable:
             from mxboard import SummaryWriter
-            self.writer = SummaryWriter(save_dir)
+            self.writer = SummaryWriter(save_dir, verbose=False)
 
         self.logger = setup_logger(os.path.join(save_dir, 'train_log'))
         self.logger.info(pformat(self.config))
@@ -172,7 +166,7 @@ class BaseTrainer:
 
         # 加载其他信息
         other_filename = resume_path.replace('.params', '.info')
-        checkpoint = pickle.load(open(other_filename,'rb'))
+        checkpoint = pickle.load(open(other_filename, 'rb'))
         self.start_epoch = checkpoint['epoch'] + 1
         self.global_step = checkpoint['global_step']
         self.metrics = checkpoint['metrics']

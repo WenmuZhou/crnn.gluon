@@ -59,8 +59,7 @@ def get_dataset(data_list, module_name, phase, dataset_args):
     :param dataset_args: module_name的参数
     :return: 如果data_path列表不为空，返回对于的ConcatDataset对象，否则None
     """
-    s_dataset = getattr(dataset, module_name)(phase=phase, data_list=data_list,
-                                              **dataset_args)
+    s_dataset = getattr(dataset, module_name)(phase=phase, data_list=data_list, **dataset_args)
     return s_dataset
 
 
