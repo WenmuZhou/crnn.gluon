@@ -5,6 +5,7 @@ import sys
 import re
 import six
 import lmdb
+import logging
 from PIL import Image
 import numpy as np
 from mxnet import image, nd, recordio
@@ -14,6 +15,8 @@ import imgaug.augmenters as iaa
 
 from utils import punctuation_mend
 from base import BaseDataset
+
+logger = logging.getLogger('crnn.gluon')
 
 seq = iaa.Sequential([
     iaa.Sometimes(0.5, iaa.OneOf([
@@ -57,8 +60,8 @@ class ImageDataset(BaseDataset):
             label = punctuation_mend(label)
         try:
             label = self.label_enocder(label)
-        except Exception as e:
-            print(img_path, label)
+        except:
+            logger.error('meet error when encode label, {},{}'.format(img_path, label))
         if self.phase == 'train':
             img = seq.augment_image(img)
         img = self.pre_processing(img)
