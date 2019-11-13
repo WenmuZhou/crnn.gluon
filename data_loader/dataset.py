@@ -47,7 +47,7 @@ class ImageDataset(BaseDataset):
         """
         super().__init__(img_h, img_w, img_channel, num_label, alphabet, ignore_chinese_punctuation, phase)
         assert phase in ['train', 'test']
-        self.data_list = data_list
+        self.data_list = [x for x in data_list if len(x[1]) <= self.num_label]
 
     def __getitem__(self, idx):
         img_path, label = self.data_list[idx]
