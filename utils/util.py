@@ -74,12 +74,12 @@ def try_gpu(gpu):
 def punctuation_mend(string):
     # 输入字符串或者txt文件路径
     import unicodedata
-    import os
+    import pathlib
 
     table = {ord(f): ord(t) for f, t in zip(
         u'，。！？【】（）％＃＠＆１２３４５６７８９０“”‘’',
         u',.!?[]()%#@&1234567890""\'\'')}  # 其他自定义需要修改的符号可以加到这里
-    if os.path.isfile(string):
+    if pathlib.Path(string).is_file():
         with open(string, 'r', encoding='utf-8') as f:
             res = unicodedata.normalize('NFKC', f.read())
             res = res.translate(table)
@@ -92,5 +92,4 @@ def punctuation_mend(string):
 
 
 if __name__ == '__main__':
-    logger = setup_logger('1.txt')
-    logger.info('1')
+    print(punctuation_mend('1'))

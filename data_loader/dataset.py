@@ -133,11 +133,14 @@ class LmdbDataset(BaseDataset):
                     img = Image.new('RGB', (self.img_w, self.img_h))
                 else:
                     img = Image.new('L', (self.img_w, self.img_h))
-                label = '[dummy_label]'
+                label = '嫑'
 
             # We only train and evaluate on alphanumerics (or pre-defined character set in train.py)
             out_of_char = '[^{}]'.format(self.alphabet)
             label = re.sub(out_of_char, '', label)
+            label = label.replace(' ', '')
+            if self.ignore_chinese_punctuation:
+                label = punctuation_mend(label)
             label = self.label_enocder(label)
             img = nd.array(np.array(img))
             img = self.pre_processing(img)

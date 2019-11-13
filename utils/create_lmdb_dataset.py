@@ -7,28 +7,11 @@
 import os
 import lmdb
 import cv2
-import pathlib
 from tqdm import tqdm
 import numpy as np
 
-
-def get_datalist(train_data_path):
-    """
-    获取训练和验证的数据list
-    :param train_data_path: 训练的dataset文件列表，每个文件内以如下格式存储 ‘path/to/img\tlabel’
-    :return:
-    """
-    train_data_list = []
-    for train_path in train_data_path:
-        for p in train_path:
-            with open(p, 'r', encoding='utf-8') as f:
-                for line in tqdm(f.readlines(), desc='reading data:' + p):
-                    line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
-                    if len(line) > 1:
-                        img_path = pathlib.Path(line[0])
-                        if img_path.exists() and img_path.stat().st_size > 0 and line[1]:
-                            train_data_list.append((line[0], line[1]))
-    return train_data_list
+from data_loader import get_datalist
+from utils import punctuation_mend
 
 
 def checkImageIsValid(imageBin):
@@ -89,6 +72,15 @@ def createDataset(data_list, outputPath, checkValid=True):
 
 if __name__ == '__main__':
     data_list = [["/media/zj/资料/zj/dataset/train_linux.csv"]]
-    data_list = get_datalist(data_list)
-
-    createDataset(data_list, '/media/zj/资料/zj/dataset/lmdb')
+    save_path = './lmdb/train'
+    os.makedirs(save_path, exist_ok=True)
+    train_data_list, val_data_list = get_datalist(data_list, val_data_path=data_list[0])
+    train_data_list = train_data_list[0]
+    alphabet = [x[1] for x in train_data_list]
+    alphabet.extend([x[1] for x in val_data_list])
+    alphabet = [punctuation_mend(x) for x in alphabet]
+    alphabet = ''.join(sorted(set((''.join(alphabet)))))
+    alphabet.replace(' ', '')
+    np.save(os.path.join(save_path, 'alphabet.npy'), alphabet)
+    createDataset(train_data_list, save_path)
+    createDataset(val_data_list, save_path.replace('train', 'validation'))
