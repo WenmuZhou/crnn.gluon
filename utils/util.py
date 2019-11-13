@@ -11,11 +11,12 @@ def setup_logger(log_file_path: str = None):
     import logging
     logger = logging.getLogger('crnn.gluon')
     logger.setLevel(logging.DEBUG)
-    logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s: %(message)s',
-                        datefmt='%Y-%m-%d %H:%M:%S')
+    formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
+    ch = logging.StreamHandler()
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
     if log_file_path is not None:
         file_handle = logging.FileHandler(log_file_path)
-        formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
         file_handle.setFormatter(formatter)
         logger.addHandler(file_handle)
     logger.info('logger init finished')
