@@ -36,11 +36,11 @@ class Trainer(BaseTrainer):
             if i >= self.train_loader_len:
                 break
             self.global_step += 1
+            cur_batch_size = images.shape[0]
             # 将图片和gt划分到每个gpu
             gpu_images = gutils.split_and_load(images, self.ctx)
             gpu_labels = gutils.split_and_load(labels, self.ctx)
             # 数据进行转换和丢到gpu
-            cur_batch_size = images.shape[0]
 
             # forward
             with autograd.record():
