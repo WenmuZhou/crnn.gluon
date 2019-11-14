@@ -57,6 +57,11 @@ class BaseTrainer:
         optimizer = self._initialize('optimizer', mx.optimizer, lr_scheduler=schedule)
         self.trainer = gluon.Trainer(self.model.collect_params(), optimizer=optimizer)
 
+        if self.config['trainer']['resume_checkpoint'] != '':
+            self._laod_checkpoint(self.config['trainer']['resume_checkpoint'], resume=True)
+        elif self.config['trainer']['finetune_checkpoint'] != '':
+            self._laod_checkpoint(self.config['trainer']['finetune_checkpoint'], resume=False)
+
         if self.config['trainer']['resume']['checkpoint'] != '' and not self.config['trainer']['resume'][
             'restart_training']:
             self._resume_checkpoint(self.config['trainer']['resume']['checkpoint'])
@@ -80,11 +85,6 @@ class BaseTrainer:
         """
         Full training logic
         """
-        try:
-            for i, (images, labels) in enumerate(self.train_loader):
-                pass
-        except:
-            self.logger.info(traceback.format_exc())
         for epoch in range(self.start_epoch, self.epochs + 1):
             try:
                 self.epoch_result = self._train_epoch(epoch)
@@ -149,29 +149,31 @@ class BaseTrainer:
         else:
             self.logger.info("Saving checkpoint: {}".format(params_filename))
 
-    def _resume_checkpoint(self, resume_path):
+    def _laod_checkpoint(self, checkpoint_path, resume):
         """
         从检查点钟加载模型，会加载模型权重，trainer状态，其他的信息
         :param resume_path: 检查点地址
         :return:
         """
-        self.logger.info("Loading checkpoint: {} ...".format(resume_path))
+        self.logger.info("Loading checkpoint: {} ...".format(checkpoint_path))
 
         # 加载模型参数
-        self.model.load_parameters(resume_path, ctx=self.ctx, ignore_extra=True, allow_missing=True)
-        # 加载trainer状态
-        trainer_filename = resume_path.replace('.params', '.train_states')
-        if os.path.exists(trainer_filename):
-            self.trainer.load_states(trainer_filename)
+        self.model.load_parameters(checkpoint_path, ctx=self.ctx, ignore_extra=True, allow_missing=True)
+        if resume:
+            # 加载trainer状态
+            trainer_filename = checkpoint_path.replace('.params', '.train_states')
+            if os.path.exists(trainer_filename):
+                self.trainer.load_states(trainer_filename)
 
-        # 加载其他信息
-        other_filename = resume_path.replace('.params', '.info')
-        checkpoint = pickle.load(open(other_filename, 'rb'))
-        self.start_epoch = checkpoint['epoch'] + 1
-        self.global_step = checkpoint['global_step']
-        self.metrics = checkpoint['metrics']
-
-        self.logger.info("Checkpoint '{}' (epoch {}) loaded".format(resume_path, self.start_epoch))
+            # 加载其他信息
+            other_filename = checkpoint_path.replace('.params', '.info')
+            checkpoint = pickle.load(open(other_filename, 'rb'))
+            self.start_epoch = checkpoint['epoch'] + 1
+            self.global_step = checkpoint['global_step']
+            self.metrics = checkpoint['metrics']
+            self.logger.info("resume from checkpoint {} (epoch {})".format(checkpoint_path, self.start_epoch))
+        else:
+            self.logger.info("finetune from checkpoint {}".format(checkpoint_path))
 
     def _initialize(self, name, module, *args, **kwargs):
         module_name = self.config[name]['type']

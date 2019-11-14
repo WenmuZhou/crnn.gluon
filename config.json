@@ -67,10 +67,8 @@
         "gpus": 0,
         "epochs": 100,
         "display_interval": 10,
-        "resume": {
-            "restart_training": true,
-            "checkpoint": ""
-        },
+        "resume_checkpoint": "",
+        "finetune_checkpoint": "",
         "output_dir": "output",
         "tensorboard": true
     }
