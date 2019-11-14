@@ -4,7 +4,7 @@
 import time
 import Levenshtein
 from tqdm import tqdm
-from mxnet import autograd, nd
+from mxnet import autograd
 from mxnet.gluon import utils as gutils
 
 from base import BaseTrainer
@@ -52,7 +52,7 @@ class Trainer(BaseTrainer):
             self.trainer.step(cur_batch_size)
 
             # loss 和 acc 记录到日志
-            loss = nd.mean(*ls).asscalar()
+            loss = sum([x.sum().asscalar() for x in ls]) / sum([x.shape[0] for x in ls])
             train_loss += loss
 
             batch_dict = self.accuracy_batch(preds, gpu_labels, phase='TRAIN')
