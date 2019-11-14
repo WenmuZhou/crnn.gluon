@@ -53,7 +53,7 @@ class GluonNet:
         :param model_path: 模型地址
         :param gpu_id: 在哪一块gpu上运行
         """
-        config = pickle.load(open(model_path.replace('.params', '.info'),'rb'))['config']
+        config = pickle.load(open(model_path.replace('.params', '.info'), 'rb'))['config']
         alphabet = config['data_loader']['args']['dataset']['alphabet']
         net = get_model(len(alphabet), config['arch']['args'])
 
@@ -116,8 +116,7 @@ if __name__ == '__main__':
     font = FontProperties(fname=r"msyh.ttc", size=14)
 
     img_path = 'E:/zj/dataset/train/0_song5_0_3_w.jpg'
-    model_path = 'output/crnn_VGG_RNN_CTC/checkpoint/CRNN_2_loss1.602779_val_acc1.000000.params'
-
+    model_path = 'output/crnn_DenseNet_RNN_CTC/checkpoint/model_best.params'
 
     gluon_net = GluonNet(model_path=model_path, gpu_id=None)
     start = time.time()

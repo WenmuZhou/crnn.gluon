@@ -9,7 +9,7 @@ from mxnet.gluon.loss import CTCLoss
 from models import get_model
 from data_loader import get_dataloader
 from trainer import Trainer
-from utils import read_json, try_gpu
+from utils import read_json, get_ctx
 
 
 def main(config):
@@ -26,7 +26,7 @@ def main(config):
     else:
         raise NotImplementedError
 
-    ctx = try_gpu(config['trainer']['gpus'])
+    ctx = get_ctx(config['trainer']['gpus'])
     model = get_model(num_class, config['arch']['args'])
     model.hybridize()
     model.initialize(ctx=ctx)
@@ -37,7 +37,7 @@ def main(config):
                                               num_label=model.get_batch_max_length(img_h=img_h, img_w=img_w, ctx=ctx))
 
     config['lr_scheduler']['args']['step'] *= len(train_loader)
-    config['name'] = config['name'] + '_' + model.model_name
+
     trainer = Trainer(config=config,
                       model=model,
                       criterion=criterion,

@@ -59,15 +59,18 @@ def write_json(content, fname):
         json.dump(content, handle, indent=4, sort_keys=False)
 
 
-def try_gpu(gpu):
+def get_ctx(gpus):
     import mxnet as mx
     from mxnet import nd
     """If GPU is available, return mx.gpu(0); else return mx.cpu()"""
     try:
-        ctx = mx.gpu(gpu)
-        _ = nd.array([0], ctx=ctx)
+        ctx = []
+        for gpu in gpus:
+            ctx_i = mx.gpu(gpu)
+            _ = nd.array([0], ctx=ctx_i)
+            ctx.append(ctx_i)
     except:
-        ctx = mx.cpu()
+        ctx = [mx.cpu()]
     return ctx
 
 

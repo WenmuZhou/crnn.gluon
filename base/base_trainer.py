@@ -12,22 +12,23 @@ import mxnet as mx
 from mxnet import nd, gluon
 import traceback
 
-from utils import setup_logger, try_gpu
+from utils import setup_logger, get_ctx
 
 
 class BaseTrainer:
     def __init__(self, config, model, criterion, ctx):
         config['trainer']['output_dir'] = os.path.join(str(pathlib.Path(os.path.abspath(__name__)).parent),
                                                        config['trainer']['output_dir'])
-        save_dir = os.path.join(config['trainer']['output_dir'], config['name'])
-        self.checkpoint_dir = os.path.join(save_dir, 'checkpoint')
+        config['name'] = config['name'] + '_' + model.model_name
+        self.save_dir = os.path.join(config['trainer']['output_dir'], config['name'])
+        self.checkpoint_dir = os.path.join(self.save_dir, 'checkpoint')
 
-        if config['trainer']['resume']['restart_training']:
-            shutil.rmtree(save_dir, ignore_errors=True)
+        if config['trainer']['resume_checkpoint'] == '' and config['trainer']['finetune_checkpoint'] == '':
+            shutil.rmtree(self.save_dir, ignore_errors=True)
         if not os.path.exists(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
         # 保存本次实验的alphabet 到模型保存的地方
-        np.save(os.path.join(save_dir, 'alphabet.npy'), config['data_loader']['args']['dataset']['alphabet'])
+        np.save(os.path.join(self.save_dir, 'alphabet.npy'), config['data_loader']['args']['dataset']['alphabet'])
         self.global_step = 0
         self.start_epoch = 1
         self.config = config
@@ -40,15 +41,14 @@ class BaseTrainer:
         self.display_interval = self.config['trainer']['display_interval']
         if self.tensorboard_enable:
             from mxboard import SummaryWriter
-            self.writer = SummaryWriter(save_dir, verbose=False)
+            self.writer = SummaryWriter(self.save_dir, verbose=False)
 
-        self.logger = setup_logger(os.path.join(save_dir, 'train_log'))
+        self.logger = setup_logger(os.path.join(self.save_dir, 'train_log'))
         self.logger.info(pformat(self.config))
         self.logger.info(self.model)
         # device set
         self.ctx = ctx
-        mx.random.seed(2)  # 为CPU设置随机种子
-        mx.random.seed(2, ctx=self.ctx)
+        mx.random.seed(2)  # 设置随机种子
 
         self.logger.info('train with mxnet: {} and device: {}'.format(mx.__version__, self.ctx))
         self.metrics = {'val_acc': 0, 'train_loss': float('inf'), 'best_model': ''}
@@ -62,20 +62,17 @@ class BaseTrainer:
         elif self.config['trainer']['finetune_checkpoint'] != '':
             self._laod_checkpoint(self.config['trainer']['finetune_checkpoint'], resume=False)
 
-        if self.config['trainer']['resume']['checkpoint'] != '' and not self.config['trainer']['resume'][
-            'restart_training']:
-            self._resume_checkpoint(self.config['trainer']['resume']['checkpoint'])
-            self.config['lr_scheduler']['args']['last_epoch'] = self.start_epoch
-
         # todo 单机多卡
 
         if self.tensorboard_enable:
             try:
                 # add graph
-                dummy_input = nd.zeros((1, self.config['data_loader']['args']['dataset']['img_channel'],
-                                        self.config['data_loader']['args']['dataset']['img_h'],
-                                        self.config['data_loader']['args']['dataset']['img_w']), ctx=self.ctx)
-                self.model(dummy_input)
+                from mxnet.gluon import utils as gutils
+                dummy_input = gutils.split_and_load(
+                    nd.zeros((1, self.config['data_loader']['args']['dataset']['img_channel'],
+                              self.config['data_loader']['args']['dataset']['img_h'],
+                              self.config['data_loader']['args']['dataset']['img_w'])), ctx)
+                self.model(dummy_input[0])
                 self.writer.add_graph(model)
             except:
                 self.logger.error(traceback.format_exc())
@@ -145,7 +142,7 @@ class BaseTrainer:
             shutil.copy(params_filename, os.path.join(self.checkpoint_dir, 'model_best.params'))
             shutil.copy(trainer_filename, os.path.join(self.checkpoint_dir, 'model_best.train_states'))
             shutil.copy(other_filename, os.path.join(self.checkpoint_dir, 'model_best.info'))
-            self.logger.info("Saving current best: {}".format(file_name))
+            self.logger.info("Saving current best: {}".format(os.path.join(self.checkpoint_dir, 'model_best.params')))
         else:
             self.logger.info("Saving checkpoint: {}".format(params_filename))
 

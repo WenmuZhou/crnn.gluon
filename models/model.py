@@ -38,11 +38,11 @@ class Model(HybridBlock):
         self.batch_max_length = -1
 
     def get_batch_max_length(self, img_h, img_w, ctx):
-        input = nd.zeros((2, 3, img_h, img_w), ctx=ctx)
-        self(input)
+        from mxnet.gluon import utils as gutils
+        input = gutils.split_and_load(nd.zeros((2, 3, img_h, img_w)), ctx)
         # 特征提取阶段
-        visual_feature = self.feature_extraction(input)
-        self.batch_max_length = visual_feature.shape[-1]
+        visual_feature = [self.feature_extraction(x) for x in input]
+        self.batch_max_length = visual_feature[0].shape[-1]
         return self.batch_max_length
 
     def hybrid_forward(self, F, x, *args, **kwargs):

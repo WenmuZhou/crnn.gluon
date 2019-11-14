@@ -64,7 +64,7 @@
     },
     "trainer": {
         "seed": 2,
-        "gpus": 0,
+        "gpus": [0],
         "epochs": 100,
         "display_interval": 10,
         "resume_checkpoint": "",
