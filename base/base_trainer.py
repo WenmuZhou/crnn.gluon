@@ -62,8 +62,6 @@ class BaseTrainer:
         elif self.config['trainer']['finetune_checkpoint'] != '':
             self._laod_checkpoint(self.config['trainer']['finetune_checkpoint'], resume=False)
 
-        # todo 单机多卡
-
         if self.tensorboard_enable:
             try:
                 # add graph
