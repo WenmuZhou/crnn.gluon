@@ -3,6 +3,7 @@
 # @Author  : zhoujun
 
 import os
+os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = 0
 import numpy as np
 import mxnet as mx
 from mxnet import image, nd

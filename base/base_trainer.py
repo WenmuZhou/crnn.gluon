@@ -80,12 +80,12 @@ class BaseTrainer:
         """
         Full training logic
         """
-        for epoch in range(self.start_epoch, self.epochs + 1):
-            try:
+        try:
+            for epoch in range(self.start_epoch, self.epochs + 1):
                 self.epoch_result = self._train_epoch(epoch)
                 self._on_epoch_finish()
-            except:
-                self.logger.error(traceback.format_exc())
+        except:
+            self.logger.error(traceback.format_exc())
         if self.tensorboard_enable:
             self.writer.close()
         self._on_train_finish()

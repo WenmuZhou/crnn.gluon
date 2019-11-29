@@ -64,6 +64,7 @@ class ImageDataset(BaseDataset):
             logger.error('meet error when encode label, {},{}'.format(img_path, label))
         if self.phase == 'train':
             img = seq.augment_image(img)
+        img = nd.array(img)
         img = self.pre_processing(img)
         return img, label
 
