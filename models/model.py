@@ -1,51 +1,60 @@
 from mxnet import nd
-from mxnet.gluon import nn, HybridBlock
-from models.modules.feature_extraction import VGG, ResNet, DenseNet
-from models.modules.sequence_modeling import RNNDecoder,CNNDecoder
+from mxnet.gluon import HybridBlock
+from models.modules import *
+
+
+def init_modules(config, module_name, canbe_none=True, **kwargs):
+    if module_name not in config:
+        return None, None
+    module_config = config[module_name]
+    module_type = module_config['type']
+    if len(module_type) == 0:
+        return None, None
+    if 'args' not in module_config or module_config['args'] is None:
+        module_args = {}
+    else:
+        module_args = module_config['args']
+    module_args.update(**kwargs)
+    if canbe_none:
+        try:
+            module = eval(module_type)(**module_args)
+        except:
+            module = None
+    else:
+        module = eval(module_type)(**module_args)
+    return module, module_type
 
 
 class Model(HybridBlock):
-    def __init__(self, n_class, config):
+    def __init__(self, n_class, ctx, config):
         super(Model, self).__init__()
-        feature_extraction_dict = {'VGG': VGG, 'ResNet': ResNet, 'DenseNet': DenseNet}
+
+        # 二值分割网络
+        self.binarization, self.binarization_type = init_modules(config, 'binarization', canbe_none=True, ctx=ctx)
 
         # 特征提取模型设置
-        feature_extraction_type = config['feature_extraction']['type']
-        if feature_extraction_type in feature_extraction_dict.keys():
-            self.feature_extraction = feature_extraction_dict[feature_extraction_type]()
-        else:
-            raise NotImplementedError
+        self.feature_extraction, self.feature_extraction_type = init_modules(config, 'feature_extraction', canbe_none=False)
 
         # 序列模型
-        sequence_model_type = config['sequence_model']['type']
-        if sequence_model_type == 'RNN':
-            self.sequence_model = RNNDecoder(config['sequence_model']['args']['hidden_size'])
-        elif sequence_model_type == "CNN":
-            self.sequence_model = CNNDecoder(config['sequence_model']['args']['hidden_size'])
-        else:
-            self.sequence_model = None
+        self.sequence_model, self.sequence_model_type = init_modules(config, 'sequence_model', canbe_none=True)
 
         # 预测设置
-        self.prediction_type = config['prediction']['type']
-        if self.prediction_type == 'CTC':
-            self.prediction = nn.Dense(units=n_class, flatten=False)
-            # self.prediction = nn.Conv1D(n_class,1)
-        else:
-            raise NotImplementedError
-        self.model_name = '{}_{}_{}'.format(feature_extraction_type, sequence_model_type,
-                                            self.prediction_type)
+        self.prediction, self.prediction_type = init_modules(config, 'prediction', canbe_none=False, n_class=n_class)
 
+        self.model_name = '{}_{}_{}_{}'.format(self.binarization_type, self.feature_extraction_type, self.sequence_model_type, self.prediction_type)
         self.batch_max_length = -1
 
-    def get_batch_max_length(self, img_h, img_w, ctx):
-        from mxnet.gluon import utils as gutils
-        input = gutils.split_and_load(nd.zeros((2, 3, img_h, img_w)), ctx)
+    def get_batch_max_length(self, x):
         # 特征提取阶段
-        visual_feature = [self.feature_extraction(x) for x in input]
-        self.batch_max_length = visual_feature[0].shape[-1]
+        if self.binarization is not None:
+            x = self.binarization(x)
+        visual_feature = self.feature_extraction(x)
+        self.batch_max_length = visual_feature.shape[-1]
         return self.batch_max_length
 
     def hybrid_forward(self, F, x, *args, **kwargs):
+        if self.binarization is not None:
+            x = self.binarization(x)
         # 特征提取阶段
         visual_feature = self.feature_extraction(x)
         # 序列建模阶段
@@ -58,7 +67,7 @@ class Model(HybridBlock):
             prediction = self.prediction(contextual_feature)
         else:
             raise NotImplementedError
-        return prediction
+        return prediction, x
 
 
 if __name__ == '__main__':
@@ -68,7 +77,6 @@ if __name__ == '__main__':
     from utils import read_json
 
     config = read_json(r'E:\zj\code\crnn.gluon\config.json')
-    # os.environ['CUDA_VISIBLE_DEVICES'] = ','.join([str(i) for i in config['trainer']['gpus']])
 
     config['data_loader']['args']['alphabet'] = str(np.load(r'E:\zj\code\crnn.gluon\alphabet.npy'))
     alphabet = config['data_loader']['args']['alphabet']
@@ -78,7 +86,7 @@ if __name__ == '__main__':
     # net.hybridize()
     net.initialize(ctx=ctx)
     print(net.model_name)
-    print(net.get_batch_max_length(32,320,ctx))
+    print(net.get_batch_max_length(32, 320, ctx))
     a = nd.zeros((2, 3, 32, 320), ctx=ctx)
     b = net(a)
     print(b.shape)

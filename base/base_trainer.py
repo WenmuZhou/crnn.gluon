@@ -16,19 +16,20 @@ from utils import setup_logger, get_ctx
 
 
 class BaseTrainer:
-    def __init__(self, config, model, criterion, ctx):
+    def __init__(self, config, model, criterion, ctx, sample_input):
         config['trainer']['output_dir'] = os.path.join(str(pathlib.Path(os.path.abspath(__name__)).parent),
                                                        config['trainer']['output_dir'])
         config['name'] = config['name'] + '_' + model.model_name
         self.save_dir = os.path.join(config['trainer']['output_dir'], config['name'])
         self.checkpoint_dir = os.path.join(self.save_dir, 'checkpoint')
+        self.alphabet = config['dataset']['alphabet']
 
         if config['trainer']['resume_checkpoint'] == '' and config['trainer']['finetune_checkpoint'] == '':
             shutil.rmtree(self.save_dir, ignore_errors=True)
         if not os.path.exists(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
         # 保存本次实验的alphabet 到模型保存的地方
-        np.save(os.path.join(self.save_dir, 'alphabet.npy'), config['data_loader']['args']['dataset']['alphabet'])
+        np.save(os.path.join(self.save_dir, 'alphabet.npy'), self.alphabet)
         self.global_step = 0
         self.start_epoch = 1
         self.config = config
@@ -66,11 +67,7 @@ class BaseTrainer:
             try:
                 # add graph
                 from mxnet.gluon import utils as gutils
-                dummy_input = gutils.split_and_load(
-                    nd.zeros((1, self.config['data_loader']['args']['dataset']['img_channel'],
-                              self.config['data_loader']['args']['dataset']['img_h'],
-                              self.config['data_loader']['args']['dataset']['img_w'])), ctx)
-                self.model(dummy_input[0])
+                self.model(sample_input)
                 self.writer.add_graph(model)
             except:
                 self.logger.error(traceback.format_exc())

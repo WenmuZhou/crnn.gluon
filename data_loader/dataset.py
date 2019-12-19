@@ -5,41 +5,19 @@ import sys
 import re
 import six
 import lmdb
-import logging
 from PIL import Image
+import cv2
 import numpy as np
 from mxnet import image, nd, recordio
 from mxnet.gluon.data import DataLoader
 from mxnet.gluon.data import RecordFileDataset
-import imgaug.augmenters as iaa
 
-from utils import punctuation_mend
-from base import BaseDataset
-
-logger = logging.getLogger('crnn.gluon')
-
-seq = iaa.Sequential([
-    iaa.Sometimes(0.5, iaa.OneOf([
-        iaa.GaussianBlur((0, 3.0)),  # blur images with a sigma between 0 and 3.0
-        iaa.AverageBlur(k=(2, 7)),  # blur image using local means with kernel sizes between 2 and 7
-        iaa.MedianBlur(k=(3, 11)),  # blur image using local medians with kernel sizes between 2 and 7
-    ])),
-    iaa.Sometimes(0.5, iaa.AdditiveGaussianNoise(loc=0, scale=(0.0, 0.05 * 255), per_channel=0.5)),
-    iaa.Sometimes(0.5, iaa.Add((-10, 10), per_channel=0.5)),
-    iaa.Sometimes(0.5, iaa.AddToHueAndSaturation((-20, 20))),
-    iaa.Sometimes(0.5, iaa.FrequencyNoiseAlpha(
-        exponent=(-4, 0),
-        first=iaa.Multiply((0.5, 1.5), per_channel=True),
-        second=iaa.LinearContrast((0.5, 2.0))
-    )),
-    iaa.Sometimes(0.5, iaa.PiecewiseAffine(scale=(0.01, 0.05))),
-    iaa.Sometimes(0.5, iaa.PerspectiveTransform(scale=(0.01, 0.1)))
-], random_order=True)
+from utils import punctuation_mend, get_datalist
+from base import BaseDataSet
 
 
-class ImageDataset(BaseDataset):
-    def __init__(self, data_list: list, img_h: int, img_w: int, img_channel: int, num_label: int,
-                 alphabet: str, ignore_chinese_punctuation, phase: str = 'train'):
+class ImageDataset(BaseDataSet):
+    def __init__(self, data_path: str, img_mode, num_label, alphabet, ignore_chinese_punctuation, remove_blank, pre_processes, **kwargs):
         """
         数据集初始化
         :param data_txt: 存储着图片路径和对于label的文件
@@ -48,42 +26,71 @@ class ImageDataset(BaseDataset):
         :param num_label: 最大字符个数,应该和网络最终输出的序列宽度一样
         :param alphabet: 字母表
         """
-        super().__init__(img_h, img_w, img_channel, num_label, alphabet, ignore_chinese_punctuation, phase)
-        assert phase in ['train', 'test']
-        self.data_list = [x for x in data_list if len(x[1]) <= self.num_label]
+        super().__init__(data_path, img_mode, num_label, alphabet, ignore_chinese_punctuation, remove_blank, pre_processes, **kwargs)
 
-    def __getitem__(self, idx):
-        img_path, label = self.data_list[idx]
-        img = image.imread(img_path, 1 if self.img_channel == 3 else 0).asnumpy()
-        label = label.replace(' ', '')
+    def load_data(self, data_path: str) -> list:
+        return get_datalist(data_path)
+
+    def get_sample(self, index):
+        img_path, label = self.data_list[index]
+        img = cv2.imread(img_path, 1 if self.img_mode != 'GRAY' else 0)
+        if self.img_mode == 'RGB':
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        if self.remove_blank:
+            label = label.replace(' ', '')
         if self.ignore_chinese_punctuation:
             label = punctuation_mend(label)
-        try:
-            label = self.label_enocder(label)
-        except:
-            logger.error('meet error when encode label, {},{}'.format(img_path, label))
-        if self.phase == 'train':
-            img = seq.augment_image(img)
-        img = nd.array(img)
-        img = self.pre_processing(img)
         return img, label
 
-    def __len__(self):
-        return len(self.data_list)
 
+class LmdbDataset(BaseDataSet):
+    def __init__(self, data_path: str, img_mode, num_label, alphabet, ignore_chinese_punctuation, remove_blank, pre_processes, **kwargs):
+        super().__init__(data_path, img_mode, num_label, alphabet, ignore_chinese_punctuation, remove_blank, pre_processes, **kwargs)
 
-class LmdbDataset(BaseDataset):
-    def __init__(self, data_list, img_h: int, img_w: int, img_channel: int, num_label: int, alphabet: str,
-                 ignore_chinese_punctuation, phase: str = 'train'):
-        super().__init__(img_h, img_w, img_channel, num_label, alphabet, ignore_chinese_punctuation, phase)
+    def get_sample(self, index):
+        index = self.data_list[index]
+        with self.env.begin(write=False) as txn:
+            label_key = 'label-%09d'.encode() % index
+            label = txn.get(label_key).decode('utf-8')
+            img_key = 'image-%09d'.encode() % index
+            imgbuf = txn.get(img_key)
 
-        self.data_list = data_list
-        self.env = lmdb.open(data_list, max_readers=32, readonly=True, lock=False, readahead=False, meminit=False)
+            buf = six.BytesIO()
+            buf.write(imgbuf)
+            buf.seek(0)
+            try:
+                if self.img_mode == 'RGB':
+                    img = Image.open(buf).convert('RGB')  # for color image
+                elif self.img_mode == "GRAY":
+                    img = Image.open(buf).convert('L')
+                else:
+                    raise NotImplementedError
+            except IOError:
+                print('Corrupted image for {}'.format(index))
+                # make dummy image and dummy label for corrupted image.
+                if self.img_channel == 3:
+                    img = Image.new('RGB', (self.img_w, self.img_h))
+                else:
+                    img = Image.new('L', (self.img_w, self.img_h))
+                label = '嫑'
+
+            # We only train and evaluate on alphanumerics (or pre-defined character set in train.py)
+            out_of_char = '[^{}]'.format(self.alphabet)
+            label = re.sub(out_of_char, '', label)
+            if self.remove_blank:
+                label = label.replace(' ', '')
+            if self.ignore_chinese_punctuation:
+                label = punctuation_mend(label)
+            img = np.array(img)
+        return img, label
+
+    def load_data(self, data_path: str) -> list:
+        self.env = lmdb.open(data_path, max_readers=32, readonly=True, lock=False, readahead=False, meminit=False)
         if not self.env:
-            print('cannot create lmdb from %s' % (data_list))
+            print('cannot create lmdb from %s' % (data_path))
             sys.exit(0)
 
-        self.filtered_index_list = []
+        filtered_index_list = []
         with self.env.begin(write=False) as txn:
             nSamples = int(txn.get('num-samples'.encode()))
             self.nSamples = nSamples
@@ -101,51 +108,8 @@ class LmdbDataset(BaseDataset):
                 out_of_char = '[^{}]'.format(self.alphabet)
                 if re.search(out_of_char, label.lower()):
                     continue
-
-                self.filtered_index_list.append(index)
-            self.nSamples = len(self.filtered_index_list)
-
-    def __len__(self):
-        return self.nSamples
-
-    def __getitem__(self, index):
-        assert index <= len(self), 'index range error'
-        index = self.filtered_index_list[index]
-
-        with self.env.begin(write=False) as txn:
-            label_key = 'label-%09d'.encode() % index
-            label = txn.get(label_key).decode('utf-8')
-            img_key = 'image-%09d'.encode() % index
-            imgbuf = txn.get(img_key)
-
-            buf = six.BytesIO()
-            buf.write(imgbuf)
-            buf.seek(0)
-            try:
-                if self.img_channel == 3:
-                    img = Image.open(buf).convert('RGB')  # for color image
-                else:
-                    img = Image.open(buf).convert('L')
-
-            except IOError:
-                print('Corrupted image for {}'.format(index))
-                # make dummy image and dummy label for corrupted image.
-                if self.img_channel == 3:
-                    img = Image.new('RGB', (self.img_w, self.img_h))
-                else:
-                    img = Image.new('L', (self.img_w, self.img_h))
-                label = '嫑'
-
-            # We only train and evaluate on alphanumerics (or pre-defined character set in train.py)
-            out_of_char = '[^{}]'.format(self.alphabet)
-            label = re.sub(out_of_char, '', label)
-            label = label.replace(' ', '')
-            if self.ignore_chinese_punctuation:
-                label = punctuation_mend(label)
-            label = self.label_enocder(label)
-            img = nd.array(np.array(img))
-            img = self.pre_processing(img)
-        return (img, label)
+                filtered_index_list.append(index)
+        return filtered_index_list
 
 
 class RecordDataset(RecordFileDataset):
@@ -209,13 +173,13 @@ class RecordDataset(RecordFileDataset):
 
 
 class Batch_Balanced_Dataset(object):
-    def __init__(self, dataset_list: list, ratio_list: list, module_args: dict, dataset_transfroms,
+    def __init__(self, dataset_list: list, ratio_list: list, loader_args: dict, dataset_transfroms,
                  phase: str = 'train'):
         """
         对datasetlist里的dataset按照ratio_list里对应的比例组合，似的每个batch里的数据按按照比例采样的
         :param dataset_list: 数据集列表
         :param ratio_list: 比例列表
-        :param module_args: dataloader的配置
+        :param loader_args: dataloader的配置
         :param dataset_transfroms: 数据集使用的transforms
         :param phase: 训练集还是验证集
         """
@@ -224,16 +188,14 @@ class Batch_Balanced_Dataset(object):
         self.dataset_len = 0
         self.data_loader_list = []
         self.dataloader_iter_list = []
-        all_batch_size = module_args['loader']['train_batch_size'] if phase == 'train' else module_args['loader'][
-            'val_batch_size']
+        all_batch_size = loader_args.pop('batch_size')
         for _dataset, batch_ratio_d in zip(dataset_list, ratio_list):
             _batch_size = max(round(all_batch_size * float(batch_ratio_d)), 1)
 
             _data_loader = DataLoader(dataset=_dataset.transform_first(dataset_transfroms),
                                       batch_size=_batch_size,
-                                      shuffle=module_args['loader']['shuffle'],
                                       last_batch='rollover',
-                                      num_workers=module_args['loader']['num_workers'])
+                                      **loader_args)
             self.data_loader_list.append(_data_loader)
             self.dataloader_iter_list.append(iter(_data_loader))
             self.dataset_len += len(_dataset)
@@ -267,23 +229,33 @@ class Batch_Balanced_Dataset(object):
 
 
 if __name__ == '__main__':
+    import os
+    from tqdm import tqdm
+    import anyconfig
     from mxnet.gluon.data.vision import transforms
+    from utils import parse_config
 
     train_transfroms = transforms.Compose([
         transforms.RandomColorJitter(brightness=0.5),
         transforms.ToTensor()
     ])
-    dataset = RecordDataset(r'E:\zj\dataset\rec_train\train.rec', img_h=32, img_w=320, img_channel=3, num_label=80)
-    data_loader = DataLoader(dataset=dataset.transform_first(train_transfroms),
-                             batch_size=1,
-                             shuffle=True,
-                             last_batch='rollover',
-                             num_workers=2)
-    for i, (images, labels) in enumerate(data_loader):
-        print(images.shape)
-        print(labels)
-        img = images[0].asnumpy().transpose((1, 2, 0))
-        from matplotlib import pyplot as plt
+    config = anyconfig.load(open("config/icdar2015.yaml", 'rb'))
+    if 'base' in config:
+        config = parse_config(config)
+    if os.path.isfile(config['dataset']['alphabet']):
+        config['dataset']['alphabet'] = str(np.load(config['dataset']['alphabet']))
 
-        plt.imshow(img)
-        plt.show()
+    dataset_args = config['dataset']['validate']['dataset']['args']
+    dataset_args['num_label'] = 80
+    dataset_args['alphabet'] = config['dataset']['alphabet']
+    dataset = ImageDataset(**dataset_args)
+    data_loader = DataLoader(dataset=dataset.transform_first(train_transfroms), batch_size=1, shuffle=True, last_batch='rollover', num_workers=2)
+    for i, (images, labels) in enumerate(tqdm(data_loader)):
+        pass
+        # print(images.shape)
+        # print(labels)
+        # img = images[0].asnumpy().transpose((1, 2, 0))
+        # from matplotlib import pyplot as plt
+        #
+        # plt.imshow(img)
+        # plt.show()

@@ -1,0 +1,59 @@
+dataset:
+  alphabet: alphabet.npy
+  train:
+    dataset:
+      type: ImageDataset # 数据集类型
+      args:
+        data_path: # [[文件，文件]，[文件，文件]]，每个文件格式为 img_path \t gt，每个子list按照data_ratio的比例进行采样
+          - -''
+        data_ratio:
+          - 1.0
+        pre_processes: # 数据的预处理过程，包含augment和预处理
+          - type: IaaAugment # 使用imgaug进行变换
+          - type: Resize
+            args:
+              img_h: 32
+              img_w: 320
+              pad: true
+        transforms: # 对图片进行的变换方式
+          - type: ToTensor
+            args: {}
+          - type: Normalize
+            args:
+              mean: [0.485, 0.456, 0.406]
+              std: [0.229, 0.224, 0.225]
+        img_mode: RGB
+        ignore_chinese_punctuation: true
+        remove_blank: true
+    loader:
+      batch_size: 8
+      shuffle: true
+      pin_memory: false
+      num_workers: 6
+  validate:
+    dataset:
+      type: ImageDataset
+      args:
+        data_path: # [文件，文件]，每个文件格式为 img_path \t gt
+          - ''
+        pre_processes:
+          - type: Resize
+            args:
+              img_h: 32
+              img_w: 320
+              pad: true
+        transforms:
+          - type: ToTensor
+            args: {}
+          - type: Normalize
+            args:
+              mean: [0.485, 0.456, 0.406]
+              std: [0.229, 0.224, 0.225]
+        img_mode: RGB
+        ignore_chinese_punctuation: true
+        remove_blank: true
+    loader:
+      batch_size: 4
+      shuffle: true
+      pin_memory: false
+      num_workers: 6

@@ -17,7 +17,7 @@ Prepare a text in the following format
 ```
 
 ## Train
-1. config the `train_data_path`,`val_data_path`in [config.json](config.json)
+1. config the `dataset['train']['dataset']['data_path']`,`dataset['validate']['dataset']['data_path']` in [config.yaml](config/icdar2015.yaml)
 2. generate alphabet
 use fellow script to generate `alphabet.py` in the some folder with `train.py` 
 ```sh
@@ -25,7 +25,7 @@ python3 utils/get_keys.py
 ```
 2. use following script to run
 ```sh
-python3 train.py --config_path config.json
+python3 train.py --config_path config.yaml
 ```
 
 ## Predict 

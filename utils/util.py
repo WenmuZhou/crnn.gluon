@@ -3,7 +3,8 @@
 # @Author  : zhoujun
 import time
 import json
-from collections import OrderedDict
+import pathlib
+from tqdm import tqdm
 from pathlib import Path
 
 
@@ -82,16 +83,45 @@ def punctuation_mend(string):
     table = {ord(f): ord(t) for f, t in zip(
         u'，。！？【】（）％＃＠＆１２３４５６７８９０“”‘’',
         u',.!?[]()%#@&1234567890""\'\'')}  # 其他自定义需要修改的符号可以加到这里
-    if pathlib.Path(string).is_file():
-        with open(string, 'r', encoding='utf-8') as f:
-            res = unicodedata.normalize('NFKC', f.read())
-            res = res.translate(table)
-        with open(string, 'w', encoding='utf-8') as f:
-            f.write(res)
+    res = unicodedata.normalize('NFKC', string)
+    res = res.translate(table)
+    return res
+
+
+def get_datalist(data_path):
+    """
+    获取训练和验证的数据list
+    :param data_path: 训练的dataset文件列表，每个文件内以如下格式存储 ‘path/to/img\tlabel’
+    :return:
+    """
+    train_data = []
+    if isinstance(data_path, list):
+        for p in data_path:
+            train_data.extend(get_datalist(p))
     else:
-        res = unicodedata.normalize('NFKC', string)
-        res = res.translate(table)
-        return res
+        with open(data_path, 'r', encoding='utf-8') as f:
+            for line in tqdm(f.readlines(), desc='load data from {}'.format(data_path)):
+                line = line.strip('\n').replace('.jpg ', '.jpg\t').replace('.png ', '.png\t').split('\t')
+                if len(line) > 1:
+                    img_path = pathlib.Path(line[0].strip(' '))
+                    label = line[1]
+                    if img_path.exists() and img_path.stat().st_size > 0:
+                        train_data.append((str(img_path), label))
+    return train_data
+
+
+def parse_config(config: dict) -> dict:
+    import anyconfig
+    base_file_list = config.pop('base')
+    base_config = {}
+    for base_file in base_file_list:
+        tmp_config = anyconfig.load(open(base_file, 'rb'))
+        if 'base' in tmp_config:
+            tmp_config = parse_config(tmp_config)
+        anyconfig.merge(tmp_config, base_config)
+        base_config = tmp_config
+    anyconfig.merge(base_config, config)
+    return base_config
 
 
 if __name__ == '__main__':

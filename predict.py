@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 # @Time    : 2018/8/23 22:21
 # @Author  : zhoujun
-
 import os
-os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = 0
+import cv2
 import numpy as np
 import mxnet as mx
 from mxnet import image, nd
 from mxnet.gluon.data.vision import transforms
+
+from data_loader import get_transforms
 
 
 def try_gpu(gpu):
@@ -55,16 +56,27 @@ class GluonNet:
         :param gpu_id: 在哪一块gpu上运行
         """
         config = pickle.load(open(model_path.replace('.params', '.info'), 'rb'))['config']
-        alphabet = config['data_loader']['args']['dataset']['alphabet']
-        net = get_model(len(alphabet), config['arch']['args'])
+        alphabet = config['dataset']['alphabet']
+        self.ctx = try_gpu(gpu_id)
+
+        self.transform = []
+        for t in config['dataset']['train']['dataset']['args']['transforms']:
+            if t['type'] in ['ToTensor', 'Normalize']:
+                self.transform.append(t)
+        self.transform = get_transforms(self.transform)
 
         self.gpu_id = gpu_id
-        self.img_w = config['data_loader']['args']['dataset']['img_w']
-        self.img_h = config['data_loader']['args']['dataset']['img_h']
-        self.img_channel = config['data_loader']['args']['dataset']['img_channel']
+        img_h, img_w = 32, 100
+        for process in config['dataset']['train']['dataset']['args']['pre_processes']:
+            if process['type'] == "Resize":
+                img_h = process['args']['img_h']
+                img_w = process['args']['img_w']
+                break
+        self.img_w = img_w
+        self.img_h = img_h
+        self.img_mode = config['dataset']['train']['dataset']['args']['img_mode']
         self.alphabet = alphabet
-        self.ctx = try_gpu(gpu_id)
-        self.net = net
+        self.net = get_model(len(alphabet), self.ctx, config['arch']['args'])
         self.net.load_parameters(model_path, self.ctx)
         self.net.hybridize()
 
@@ -74,14 +86,13 @@ class GluonNet:
         :param img_path: 图像地址
         :return:
         """
-        assert self.img_channel in [1, 3], 'img_channel must in [1.3]'
         assert os.path.exists(img_path), 'file is not exists'
         img = self.pre_processing(img_path)
-        img1 = transforms.ToTensor()(img)
-        img1 = img1.expand_dims(axis=0)
+        tensor = self.transform(img)
+        tensor = tensor.expand_dims(axis=0)
 
-        img1 = img1.as_in_context(self.ctx)
-        preds = self.net(img1)
+        tensor = tensor.as_in_context(self.ctx)
+        preds, nd_img = self.net(tensor)
 
         preds = preds.softmax().asnumpy()
         # result = decode(preds, self.alphabet, raw=True)
@@ -96,7 +107,10 @@ class GluonNet:
         :param img_path: 图片地址
         :return:
         """
-        img = image.imdecode(open(img_path, 'rb').read(), 1 if self.img_channel == 3 else 0)
+        img = cv2.imread(img_path, 1 if self.img_mode != 'GRAY' else 0)
+        if self.img_mode == 'RGB':
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        img = nd.array(img, dtype=img.dtype)
         h, w = img.shape[:2]
         ratio_h = float(self.img_h) / h
         new_w = int(w * ratio_h)
@@ -108,6 +122,8 @@ class GluonNet:
 
 
 if __name__ == '__main__':
+    os.environ['MXNET_CUDNN_AUTOTUNE_DEFAULT'] = '0'
+
     from models import get_model
     import pickle
     import time
@@ -116,8 +132,8 @@ if __name__ == '__main__':
 
     font = FontProperties(fname=r"msyh.ttc", size=14)
 
-    img_path = 'E:/zj/dataset/train/0_song5_0_3_w.jpg'
-    model_path = 'output/crnn_DenseNet_RNN_CTC/checkpoint/model_best.params'
+    img_path = '/media/zj/资料/zj/dataset/icdar_rec/ch4_test_word_images_gt/word_1.png'
+    model_path = 'output/crnn_None_VGG_RNN_CTC/checkpoint/model_best.params'
 
     gluon_net = GluonNet(model_path=model_path, gpu_id=None)
     start = time.time()

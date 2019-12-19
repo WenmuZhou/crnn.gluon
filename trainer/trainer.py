@@ -12,21 +12,18 @@ from predict import decode
 
 
 class Trainer(BaseTrainer):
-    def __init__(self, config, model, criterion, train_loader, ctx, val_loader=None):
-        super(Trainer, self).__init__(config, model, criterion, ctx)
+    def __init__(self, config, model, criterion, train_loader, ctx, sample_input, validate_loader=None):
+        super().__init__(config, model, criterion, ctx, sample_input)
         self.train_loader = train_loader
         self.train_loader_len = len(train_loader)
-        self.val_loader = val_loader
-        self.val_loader_len = len(val_loader) if val_loader is not None else 0
+        self.validate_loader = validate_loader
 
-        self.alphabet = self.config['data_loader']['args']['dataset']['alphabet']
-
-        self.logger.info(
-            'train dataset has {} samples,{} in dataloader, val dataset has {} samples,{} in dataloader'.format(
-                self.train_loader.dataset_len,
-                self.train_loader_len,
-                self.val_loader.dataset_len if val_loader is not None else 0,
-                self.val_loader_len))
+        if self.validate_loader is not None:
+            self.logger.info(
+                'train dataset has {} samples,{} in dataloader, validate dataset has {} samples,{} in dataloader'.format(
+                    self.train_loader.dataset_len, len(train_loader), self.validate_loader.dataset_len, len(self.validate_loader)))
+        else:
+            self.logger.info('train dataset has {} samples,{} in dataloader'.format(len(self.train_loader.dataset), len(self.train_loader)))
 
     def _train_epoch(self, epoch):
         epoch_start = time.time()
@@ -44,7 +41,7 @@ class Trainer(BaseTrainer):
 
             # forward
             with autograd.record():
-                preds = [self.model(x) for x in gpu_images]
+                preds = [self.model(x)[0] for x in gpu_images]
                 ls = [self.criterion(pred, gpu_y) for pred, gpu_y in zip(preds, gpu_labels)]
             # backward
             for l in ls:
@@ -82,10 +79,10 @@ class Trainer(BaseTrainer):
     def _eval(self):
         n_correct = 0
         edit_dis = 0
-        for images, labels in tqdm(self.val_loader, desc='test model'):
+        for images, labels in tqdm(self.validate_loader, desc='test model'):
             gpu_images = gutils.split_and_load(images, self.ctx)
             gpu_labels = gutils.split_and_load(labels, self.ctx)
-            preds = [self.model(x) for x in gpu_images]
+            preds = [self.model(x)[0] for x in gpu_images]
             batch_dict = self.accuracy_batch(preds, gpu_labels, phase='VAL')
             n_correct += batch_dict['n_correct']
             edit_dis += batch_dict['edit_dis']
@@ -98,11 +95,11 @@ class Trainer(BaseTrainer):
         net_save_path = '{}/model_latest.params'.format(self.checkpoint_dir)
 
         save_best = False
-        if self.val_loader is not None:
+        if self.validate_loader is not None:
             epoch_eval_dict = self._eval()
 
-            val_acc = epoch_eval_dict['n_correct'] / self.val_loader.dataset_len
-            edit_dis = epoch_eval_dict['edit_dis'] / self.val_loader.dataset_len
+            val_acc = epoch_eval_dict['n_correct'] / self.validate_loader.dataset_len
+            edit_dis = epoch_eval_dict['edit_dis'] / self.validate_loader.dataset_len
 
             if self.tensorboard_enable:
                 self.writer.add_scalar('EVAL/acc', val_acc, self.global_step)

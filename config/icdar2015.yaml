@@ -1,0 +1,65 @@
+name: crnn
+base: ['config/image_dataset.yaml']
+arch:
+  type: crnnModel
+  args:
+    binarization:
+      type: None
+    feature_extraction:
+      type: VGG
+    sequence_model:
+      type: RNN
+      args:
+        hidden_size: 512
+        num_layers: 1
+    prediction:
+      type: CTC
+optimizer:
+  type: Adam
+  args:
+    learning_rate: 0.001
+lr_scheduler:
+  type: FactorScheduler
+  args:
+    step: 30
+    factor: 0.1
+    stop_factor_lr: 1.0e-07
+    warmup_begin_lr: 0.0001
+trainer:
+  seed: 2
+  gpus:
+    - 0
+  epochs: 100
+  display_interval: 10
+  resume_checkpoint: ''
+  finetune_checkpoint: ''
+  output_dir: output
+  tensorboard: true
+dataset:
+  alphabet: alphabet.npy
+  train:
+    dataset:
+      type: ImageDataset # 数据集类型
+      args:
+        data_path:
+          - - /media/zj/资料/zj/dataset/icdar_rec/train_linux.txt
+        data_ratio:
+          - 1.0
+        img_mode: RGB
+    loader:
+      batch_size: 16
+      shuffle: true
+      pin_memory: false
+      num_workers: 6
+  validate:
+    dataset:
+      type: ImageDataset
+      args:
+        data_path: # [文件，文件]，每个文件格式为 img_path \t gt
+          - /media/zj/资料/zj/dataset/icdar_rec/test_linux.txt
+        img_mode: RGB
+    loader:
+      batch_size: 4
+      shuffle: true
+      pin_memory: false
+      num_workers: 6

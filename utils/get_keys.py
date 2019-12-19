@@ -22,7 +22,7 @@ def get_key(label_file_list, ignore_chinese_punctuation, show_max_img=False):
     for label_path in label_file_list:
         with open(label_path, 'r', encoding='utf-8') as f:
             for line in tqdm(f.readlines(), desc=label_path):
-                line = line.strip('\n').replace('.jpg ', '.jpg\t').split('\t')
+                line = line.strip('\n').replace('.jpg ', '.jpg\t').replace('.png ', '.png\t').split('\t')
                 if len(line) > 1:
                     data_list.append(line[0])
                     label = line[1]
@@ -46,11 +46,12 @@ if __name__ == '__main__':
     import time
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--label_file', nargs='+', help='label file', default=[r"E:\\zj\\dataset\\train.csv"])
+    parser.add_argument('--label_file', nargs='+', help='label file', default=[""])
     args = parser.parse_args()
 
-    if os.path.exists('config.json'):
-        data = load_json('config.json')
+    config_path = 'icdar2015.yaml'
+    if os.path.exists(config_path):
+        data = load_json(config_path)
         label_file = []
         for train_file in data['data_loader']['args']['dataset']['train_data_path']:
             if isinstance(train_file, list):
@@ -64,3 +65,4 @@ if __name__ == '__main__':
         label_file = args.label_file
     alphabet = get_key(label_file, ignore_chinese_punctuation).replace(' ', '') + '嫑'
     np.save('alphabet.npy', alphabet)
+    print(alphabet)

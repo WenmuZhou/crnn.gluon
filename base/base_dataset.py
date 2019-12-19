@@ -2,33 +2,54 @@
 # @Time    : 2019/11/6 15:08
 # @Author  : zhoujun
 import numpy as np
-from mxnet import image, nd
+from mxnet import nd
 from mxnet.gluon.data import Dataset
+from data_loader.modules import *
 
-class BaseDataset(Dataset):
-    def __init__(self, img_h: int, img_w: int, img_channel: int, num_label: int,
-                 alphabet: str, ignore_chinese_punctuation, phase: str = 'train'):
-        """
-        数据集初始化
-        :param data_txt: 存储着图片路径和对于label的文件
-        :param data_shape: 图片的大小(h,w)
-        :param img_channel: 图片通道数
-        :param num_label: 最大字符个数,应该和网络最终输出的序列宽度一样
-        :param alphabet: 字母表
-        """
-        super().__init__()
-        assert phase in ['train', 'test']
 
-        self.img_h = img_h
-        self.img_w = img_w
-        self.img_channel = img_channel
+class BaseDataSet(Dataset):
+    def __init__(self, data_path: str, img_mode, num_label, alphabet, ignore_chinese_punctuation, remove_blank, pre_processes, **kwargs):
+        """
+        :param ignore_chinese_punctuation: 是否转换全角为半角
+        """
+        assert img_mode in ['RGB', 'BRG', 'GRAY']
+        self.data_list = self.load_data(data_path)
+        self.img_mode = img_mode
         self.num_label = num_label
+        self.remove_blank = remove_blank
         self.alphabet = alphabet
-        self.phase = phase
         self.ignore_chinese_punctuation = ignore_chinese_punctuation
         self.label_dict = {}
         for i, char in enumerate(self.alphabet):
             self.label_dict[char] = i
+        self._init_pre_processes(pre_processes)
+
+    def _init_pre_processes(self, pre_processes):
+        self.aug = []
+        if pre_processes is not None:
+            for aug in pre_processes:
+                if 'args' not in aug:
+                    args = {}
+                else:
+                    args = aug['args']
+                if isinstance(args, dict):
+                    cls = eval(aug['type'])(**args)
+                else:
+                    cls = eval(aug['type'])(args)
+                self.aug.append(cls)
+
+    def load_data(self, data_path: str) -> list:
+        """
+        把数据加载为一个list：
+        :params data_path: 存储数据的文件夹或者文件
+        return a list ,包含img_path和label
+        """
+        raise NotImplementedError
+
+    def apply_pre_processes(self, data):
+        for aug in self.aug:
+            data = aug(data)
+        return data
 
     def label_enocder(self, label):
         """
@@ -41,21 +62,15 @@ class BaseDataset(Dataset):
             tmp_label[i] = self.label_dict[ch]
         return tmp_label
 
-    def pre_processing(self, img):
-        """
-        对图片进行处理，先按照高度进行resize，resize之后如果宽度不足指定宽度，就补黑色像素，否则就强行缩放到指定宽度
-        :param img: 图片
-        :return:
-        """
-        img_h = self.img_h
-        img_w = self.img_w
-        h, w = img.shape[:2]
-        ratio_h = float(img_h) / h
-        new_w = int(w * ratio_h)
-        if new_w < img_w:
-            img = image.imresize(img, w=new_w, h=img_h)
-            step = nd.zeros((img_h, img_w - new_w, self.img_channel), dtype=img.dtype)
-            img = nd.concat(img, step, dim=1)
-        else:
-            img = image.imresize(img, w=img_w, h=img_h)
-        return img
+    def get_sample(self, index):
+        raise NotImplementedError
+
+    def __getitem__(self, index):
+        img, label = self.get_sample(index)
+        img = self.apply_pre_processes(img)
+        img = nd.array(img, dtype=img.dtype)
+        label = self.label_enocder(label)
+        return img, label
+
+    def __len__(self):
+        return len(self.data_list)

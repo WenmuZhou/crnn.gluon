@@ -4,7 +4,7 @@ from mxnet.gluon.model_zoo.vision.densenet import _make_dense_block
 
 
 class VGG(HybridBlock):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(VGG, self).__init__()
         with self.name_scope():
             self.features = nn.HybridSequential()
@@ -48,7 +48,7 @@ class VGG(HybridBlock):
 
 
 class ResNet(HybridBlock):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(ResNet, self).__init__()
         with self.name_scope():
             self.features = nn.HybridSequential()
@@ -97,7 +97,7 @@ def _make_transition(num_output_features, pool_stride, pool_pad, dropout):
 
 
 class DenseNet(HybridBlock):
-    def __init__(self):
+    def __init__(self, **kwargs):
         super(DenseNet, self).__init__()
         with self.name_scope():
             self.features = nn.HybridSequential()
@@ -120,14 +120,26 @@ class DenseNet(HybridBlock):
         x = x.reshape((0, -1, 1, 0))
         return x
 
+
 if __name__ == '__main__':
+    import time
     from mxnet import nd
     import mxnet as mx
+    from models.modules.seg import UNet, ResNetFPN
 
     ctx = mx.gpu(0)
-    input = nd.zeros((1, 1, 32, 320),ctx=ctx)
-    net = DenseNet()
+    input = nd.random.uniform(2, 4, (128, 3, 32, 320), ctx=ctx)
+    net = nn.HybridSequential()
+    net.add(ResNetFPN(backbone='resnet18_v1b', channels=1, ctx=ctx, pretrained=True))
+    # net.add(UNet())
+    net.add(ResNet())
     net.hybridize()
     net.initialize(ctx=ctx)
-    y = net(input)
+
+    tic = time.time()
+    for i in range(10):
+        y = net(input)
+    all_time = time.time() - tic
+    fps = (input.shape[0] * 10) / all_time
+    print('batch image time: {},fps: {}'.format(all_time / 10, fps))
     print(y.shape)
