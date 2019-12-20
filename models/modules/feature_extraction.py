@@ -128,18 +128,17 @@ if __name__ == '__main__':
     from models.modules.seg import UNet, ResNetFPN
 
     ctx = mx.gpu(0)
-    input = nd.random.uniform(2, 4, (128, 3, 32, 320), ctx=ctx)
+    input = nd.random.uniform(2, 4, (1, 3, 32, 320), ctx=ctx)
     net = nn.HybridSequential()
-    net.add(ResNetFPN(backbone='resnet18_v1b', channels=1, ctx=ctx, pretrained=True))
     # net.add(UNet())
-    net.add(ResNet())
+    net.add(VGG())
     net.hybridize()
     net.initialize(ctx=ctx)
 
     tic = time.time()
-    for i in range(10):
+    for i in range(1):
         y = net(input)
     all_time = time.time() - tic
-    fps = (input.shape[0] * 10) / all_time
+    fps = (input.shape[0] * 1) / all_time
     print('batch image time: {},fps: {}'.format(all_time / 10, fps))
     print(y.shape)

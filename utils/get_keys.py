@@ -10,7 +10,7 @@ import argparse
 import cv2
 from tqdm import tqdm
 import numpy as np
-from utils import load_json, punctuation_mend
+from utils import parse_config, punctuation_mend
 
 
 def get_key(label_file_list, ignore_chinese_punctuation, show_max_img=False):
@@ -43,26 +43,29 @@ def get_key(label_file_list, ignore_chinese_punctuation, show_max_img=False):
 
 if __name__ == '__main__':
     # 根据label文本生产key
-    import time
+    import anyconfig
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--label_file', nargs='+', help='label file', default=[""])
     args = parser.parse_args()
 
-    config_path = 'icdar2015.yaml'
+    config_path = 'config/icdar2015.yaml'
     if os.path.exists(config_path):
-        data = load_json(config_path)
+        config = anyconfig.load(open(config_path, 'rb'))
+        if 'base' in config:
+            config = parse_config(config)
         label_file = []
-        for train_file in data['data_loader']['args']['dataset']['train_data_path']:
+        for train_file in config['dataset']['train']['dataset']['args']['data_path']:
             if isinstance(train_file, list):
                 label_file.extend(train_file)
             else:
                 label_file.append(train_file)
-        label_file.extend(data['data_loader']['args']['dataset']['val_data_path'])
-        ignore_chinese_punctuation = data['data_loader']['args']['dataset']['ignore_chinese_punctuation']
+        label_file.extend(config['dataset']['validate']['dataset']['args']['data_path'])
+        ignore_chinese_punctuation = config['dataset']['train']['dataset']['args']['ignore_chinese_punctuation']
     else:
         ignore_chinese_punctuation = True
         label_file = args.label_file
-    alphabet = get_key(label_file, ignore_chinese_punctuation).replace(' ', '') + '嫑'
+    alphabet = get_key(label_file, ignore_chinese_punctuation).replace(' ', '')
     np.save('alphabet.npy', alphabet)
     print(alphabet)
+

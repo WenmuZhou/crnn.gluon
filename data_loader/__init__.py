@@ -55,6 +55,7 @@ def get_dataloader(module_config, num_label, alphabet):
     for data_path in data_path_list:
         _dataset_list.append(get_dataset(data_path=data_path, module_name=dataset_name, dataset_args=dataset_args))
     if len(data_ratio) > 1 and len(dataset_args['data_ratio']) == len(_dataset_list):
+        from . import dataset
         loader = dataset.Batch_Balanced_Dataset(dataset_list=_dataset_list, ratio_list=data_ratio, loader_args=config['loader'],
                                                 dataset_transfroms=img_transfroms, phase='train')
     else:
