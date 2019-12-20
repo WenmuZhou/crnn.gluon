@@ -65,7 +65,7 @@ if __name__ == '__main__':
     else:
         ignore_chinese_punctuation = True
         label_file = args.label_file
-    alphabet = get_key(label_file, ignore_chinese_punctuation).replace(' ', '')
+    alphabet = get_key(label_file, ignore_chinese_punctuation).replace(' ', '') + '嫑'
     np.save('alphabet.npy', alphabet)
     print(alphabet)
 
