@@ -31,7 +31,7 @@ class BaseTrainer:
         # 保存本次实验的alphabet 到模型保存的地方
         np.save(os.path.join(self.save_dir, 'alphabet.npy'), self.alphabet)
         self.global_step = 0
-        self.start_epoch = 1
+        self.start_epoch = 0
         self.config = config
 
         self.model = model
@@ -78,7 +78,7 @@ class BaseTrainer:
         Full training logic
         """
         try:
-            for epoch in range(self.start_epoch, self.epochs + 1):
+            for epoch in range(self.start_epoch + 1, self.epochs + 1):
                 self.epoch_result = self._train_epoch(epoch)
                 self._on_epoch_finish()
         except:
@@ -160,7 +160,7 @@ class BaseTrainer:
             # 加载其他信息
             other_filename = checkpoint_path.replace('.params', '.info')
             checkpoint = pickle.load(open(other_filename, 'rb'))
-            self.start_epoch = checkpoint['epoch'] + 1
+            self.start_epoch = checkpoint['epoch']
             self.global_step = checkpoint['global_step']
             self.metrics = checkpoint['metrics']
             self.logger.info("resume from checkpoint {} (epoch {})".format(checkpoint_path, self.start_epoch))
