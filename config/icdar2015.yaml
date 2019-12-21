@@ -49,8 +49,8 @@ dataset:
     loader:
       batch_size: 16
       shuffle: true
-      pin_memory: false
-      num_workers: 6
+      pin_memory: false6
+      num_workers: 0
   validate:
     dataset:
       type: ImageDataset
