@@ -55,7 +55,9 @@ class GluonNet:
         :param model_path: 模型地址
         :param gpu_id: 在哪一块gpu上运行
         """
-        config = pickle.load(open(model_path.replace('.params', '.info'), 'rb'))['config']
+        info = pickle.load(open(model_path.replace('.params', '.info'), 'rb'))
+        print('load {} epoch params'.format(info['epoch']))
+        config = info['config']
         alphabet = config['dataset']['alphabet']
         self.ctx = try_gpu(gpu_id)
 
