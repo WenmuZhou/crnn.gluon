@@ -16,7 +16,7 @@ arch:
         hidden_size: 512
         num_layers: 1
     prediction:
-      type: CTC
+      type: CTC_CNN
 optimizer:
   type: Adam
   args:

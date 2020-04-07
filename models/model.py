@@ -63,7 +63,7 @@ class Model(HybridBlock):
         else:
             contextual_feature = visual_feature.squeeze(axis=2).transpose((0, 2, 1))
         # 预测阶段
-        if self.prediction_type == 'CTC':
+        if 'CTC' in self.prediction_type:
             prediction = self.prediction(contextual_feature)
         else:
             raise NotImplementedError
