@@ -3,6 +3,6 @@
 # @Author  : zhoujun
 
 from .seg import UNet, ResNetFPN
-from .feature_extraction import VGG, ResNet, DenseNet
+from .feature_extraction import *
 from .sequence_modeling import RNNDecoder as RNN, CNNDecoder as CNN
 from .prediction import CTC,CTC_CNN

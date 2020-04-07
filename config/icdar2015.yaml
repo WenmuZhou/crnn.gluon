@@ -4,19 +4,18 @@ arch:
   type: crnnModel
   args:
     binarization:
-      type: ResNetFPN
+      type: None
       args:
         backbone: resnet18_v1b
         k: 50
     feature_extraction:
-      type: VGG
+      type: CRNN_lite
     sequence_model:
       type: RNN
       args:
-        hidden_size: 512
-        num_layers: 1
+        hidden_size: 256
     prediction:
-      type: CTC_CNN
+      type: CTC
 optimizer:
   type: Adam
   args:

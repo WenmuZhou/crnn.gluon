@@ -2,6 +2,68 @@ from mxnet.gluon import nn, HybridBlock
 from mxnet.gluon.model_zoo.vision.resnet import BasicBlockV2
 from mxnet.gluon.model_zoo.vision.densenet import _make_dense_block
 
+class CRNN_lite(HybridBlock):
+    def __init__(self):
+        """
+        是否加入lstm特征层
+        """
+        super().__init__()
+
+        ks = [5, 3, 3, 3, 3, 3, 2]
+        ps = [2, 1, 1, 1, 1, 1, 0]
+        # ss = [1, 1, 1, 1, 1, 1, 1]
+        ss = [2, 1, 1, 1, 1, 1, 1]
+        nm = [24, 128, 256, 256, 512, 512, 512]
+        # nm = [32, 64, 128, 128, 256, 256, 256]
+        # exp_ratio = [2,2,2,2,1,1,2]
+        cnn = nn.HybridSequential()
+
+        def convRelu(i, batchNormalization=False):
+            nOut = nm[i]
+            # exp  = exp_ratio[i]
+            # exp_num = exp * nIn
+            if i == 0:
+                cnn.add(nn.Conv2D(nOut, ks[i], ss[i], ps[i]))
+                cnn.add(nn.Activation('relu'))
+            else:
+                # dw conv
+                cnn.add(nn.Conv2D(nm[i-1], ks[i], ss[i], ps[i], groups=nm[i-1]))
+                if batchNormalization:
+                    cnn.add(nn.BatchNorm())
+                cnn.add(nn.Activation('relu'))
+
+                cnn.add(nn.Conv2D(nOut, 1, 1, 0))
+                if batchNormalization:
+                    cnn.add(nn.BatchNorm())
+                cnn.add(nn.Activation('relu'))
+
+        convRelu(0)
+        # cnn.add_module('pooling{0}'.format(0), nn.MaxPool2d(2, 2))  # 64x16x64
+        convRelu(1)
+        cnn.add(nn.MaxPool2D(2, 2))  # 128x8x32
+        convRelu(2, True)
+        convRelu(3)
+
+        cnn.add(nn.MaxPool2D((2, 2), (2, 1), (0, 1)))  # 256x4x16
+
+        # cnn.add_module('pooling{0}'.format(2),
+        #                nn.MaxPool2d((2, 2))) # 256x4x16
+
+        convRelu(4, True)
+        convRelu(5)
+        cnn.add(nn.MaxPool2D((2, 2), (2, 1), (0, 1)))  # 512x2x16
+
+        # cnn.add_module('pooling{0}'.format(3),
+        #                nn.MaxPool2d((2, 2))) # 256x4x16
+
+        convRelu(6, True)  # 512x1x16
+
+        self.cnn = cnn
+
+    def hybrid_forward(self, F, x, *args, **kwargs):
+        # conv features
+        conv = self.cnn(x)
+        return conv
 
 class VGG(HybridBlock):
     def __init__(self, **kwargs):

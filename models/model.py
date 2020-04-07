@@ -76,18 +76,23 @@ if __name__ == '__main__':
     import numpy as np
     from utils import parse_config
 
-    ctx = mx.cpu()
+    ctx = mx.gpu(0)
     a = nd.random.randn(2, 3, 32, 320, ctx=ctx)
     config = anyconfig.load(open(r'E:\zj\code\crnn.gluon\config\icdar2015.yaml', 'rb'))
     if 'base' in config:
         config = parse_config(config)
     config['dataset']['alphabet'] = str(np.load(r'E:\zj\code\crnn.gluon\alphabet.npy'))
     alphabet = config['dataset']['alphabet']
-    # checkpoint = torch.load(config['trainer']['resume']['checkpoint'])
-    net = Model(len(alphabet),ctx, config['arch']['args'])
-    # net.hybridize()
+    net = Model(20000,ctx, config['arch']['args'])
+
+    net.hybridize()
     net.initialize(ctx=ctx)
     print(net.model_name)
     print(net.get_batch_max_length(a))
-    b = net(a)[0]
+    import time
+    tic = time.time()
+    for i in range(10):
+        b = net(a)[0]
     print(b.shape)
+    print((time.time()-tic)/10)
+    net.save_parameters('crnn_lite.params')

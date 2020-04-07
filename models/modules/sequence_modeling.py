@@ -15,29 +15,46 @@ class BidirectionalGRU(HybridBlock):
         return x
 
 
+#
+# class BidirectionalLSTM(HybridBlock):
+#     def __init__(self, hidden_size, num_layers):
+#         super(BidirectionalLSTM, self).__init__()
+#         with self.name_scope():
+#             self.rnn = mx.gluon.rnn.LSTM(hidden_size, num_layers, bidirectional=True, layout='NTC')
+#
+#     def hybrid_forward(self, F, x, *args, **kwargs):
+#         x = self.rnn(x)
+#         return x
+
 class BidirectionalLSTM(HybridBlock):
-    def __init__(self, hidden_size, num_layers):
-        super(BidirectionalLSTM, self).__init__()
+    def __init__(self, hidden_size, use_fc=True):
+        super().__init__()
         with self.name_scope():
-            self.rnn = mx.gluon.rnn.LSTM(hidden_size, num_layers, bidirectional=True, layout='NTC')
+            self.rnn = mx.gluon.rnn.LSTM(hidden_size, bidirectional=True, layout='NTC')
+            if use_fc:
+                self.fc = nn.Dense(units=hidden_size * 2, flatten=False)
+            else:
+                self.fc = None
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         x = self.rnn(x)
+        if self.fc is not None:
+            x = self.fc(x)  # [T * b, nOut]
         return x
 
 
 class RNNDecoder(HybridBlock):
-    def __init__(self, hidden_size=256, num_layers=1):
+    def __init__(self, hidden_size=256, **kwargs):
         super(RNNDecoder, self).__init__()
         with self.name_scope():
             self.lstm = nn.HybridSequential()
             with self.lstm.name_scope():
-                self.lstm.add(BidirectionalLSTM(hidden_size, num_layers))
-                self.lstm.add(BidirectionalLSTM(hidden_size, num_layers))
+                self.lstm.add(BidirectionalLSTM(hidden_size // 2, False))
+                self.lstm.add(BidirectionalLSTM(hidden_size // 4, False))
 
     def hybrid_forward(self, F, x, *args, **kwargs):
         x = x.squeeze(axis=2)
-        x = x.transpose((0, 2, 1)) # (NTC)(batch, width, channel)s
+        x = x.transpose((0, 2, 1))  # (NTC)(batch, width, channel)s
         x = self.lstm(x)
         return x
 
