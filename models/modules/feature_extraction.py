@@ -4,9 +4,6 @@ from mxnet.gluon.model_zoo.vision.densenet import _make_dense_block
 
 class CRNN_lite(HybridBlock):
     def __init__(self):
-        """
-        是否加入lstm特征层
-        """
         super().__init__()
 
         ks = [5, 3, 3, 3, 3, 3, 2]
