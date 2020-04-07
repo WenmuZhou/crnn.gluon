@@ -4,7 +4,9 @@ output/
 venv/
 *.pyc
 .DS_Store
-*.pth
+*.params
+*.info
+*.train_states
 *.pyc
 *.pyo
 *.log
