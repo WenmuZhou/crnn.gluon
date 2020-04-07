@@ -2,65 +2,56 @@ from mxnet.gluon import nn, HybridBlock
 from mxnet.gluon.model_zoo.vision.resnet import BasicBlockV2
 from mxnet.gluon.model_zoo.vision.densenet import _make_dense_block
 
-class CRNN_lite(HybridBlock):
-    def __init__(self):
+
+class DWConv(HybridBlock):
+    def __init__(self, in_channels, out_channels, kernel_size, strides=1, padding=0, use_bn=False):
         super().__init__()
+        self.use_bn = use_bn
+        self.DWConv = nn.Conv2D(in_channels, kernel_size, strides, padding, groups=in_channels)
+        if use_bn:
+            self.DWBn = nn.BatchNorm()
+        self.DwRelu = nn.Activation('relu')
 
-        ks = [5, 3, 3, 3, 3, 3, 2]
-        ps = [2, 1, 1, 1, 1, 1, 0]
-        # ss = [1, 1, 1, 1, 1, 1, 1]
-        ss = [2, 1, 1, 1, 1, 1, 1]
-        nm = [24, 128, 256, 256, 512, 512, 512]
-        # nm = [32, 64, 128, 128, 256, 256, 256]
-        # exp_ratio = [2,2,2,2,1,1,2]
-        cnn = nn.HybridSequential()
-
-        def convRelu(i, batchNormalization=False):
-            nOut = nm[i]
-            # exp  = exp_ratio[i]
-            # exp_num = exp * nIn
-            if i == 0:
-                cnn.add(nn.Conv2D(nOut, ks[i], ss[i], ps[i]))
-                cnn.add(nn.Activation('relu'))
-            else:
-                # dw conv
-                cnn.add(nn.Conv2D(nm[i-1], ks[i], ss[i], ps[i], groups=nm[i-1]))
-                if batchNormalization:
-                    cnn.add(nn.BatchNorm())
-                cnn.add(nn.Activation('relu'))
-
-                cnn.add(nn.Conv2D(nOut, 1, 1, 0))
-                if batchNormalization:
-                    cnn.add(nn.BatchNorm())
-                cnn.add(nn.Activation('relu'))
-
-        convRelu(0)
-        # cnn.add_module('pooling{0}'.format(0), nn.MaxPool2d(2, 2))  # 64x16x64
-        convRelu(1)
-        cnn.add(nn.MaxPool2D(2, 2))  # 128x8x32
-        convRelu(2, True)
-        convRelu(3)
-
-        cnn.add(nn.MaxPool2D((2, 2), (2, 1), (0, 1)))  # 256x4x16
-
-        # cnn.add_module('pooling{0}'.format(2),
-        #                nn.MaxPool2d((2, 2))) # 256x4x16
-
-        convRelu(4, True)
-        convRelu(5)
-        cnn.add(nn.MaxPool2D((2, 2), (2, 1), (0, 1)))  # 512x2x16
-
-        # cnn.add_module('pooling{0}'.format(3),
-        #                nn.MaxPool2d((2, 2))) # 256x4x16
-
-        convRelu(6, True)  # 512x1x16
-
-        self.cnn = cnn
+        self.conv1x1 = nn.Conv2D(out_channels, 1, 1, 0)
+        if use_bn:
+            self.conv1x1_bn = nn.BatchNorm()
+        self.conv1x1_relu = nn.Activation('relu')
 
     def hybrid_forward(self, F, x, *args, **kwargs):
-        # conv features
+        x = self.DWConv(x)
+        if self.use_bn:
+            x = self.DWBn(x)
+        x = self.DwRelu(x)
+        x = self.conv1x1(x)
+        if self.use_bn:
+            x = self.conv1x1_bn(x)
+        x = self.conv1x1_relu(x)
+        return x
+
+
+class CNN_lite(HybridBlock):
+    def __init__(self):
+        super().__init__()
+        self.cnn = nn.HybridSequential()
+        with self.cnn.name_scope():
+            self.cnn.add(
+                nn.Conv2D(24, kernel_size=5, strides=2, padding=2),
+                nn.Activation('relu'),
+                DWConv(24, 128, kernel_size=3, strides=1, padding=1),
+                nn.MaxPool2D(2, 2),
+                DWConv(128, 256, kernel_size=3, strides=1, padding=1, use_bn=True),
+                DWConv(256, 256, kernel_size=3, strides=1, padding=1),
+                nn.MaxPool2D((2, 2), (2, 1), (0, 1)),
+                DWConv(256, 512, kernel_size=3, strides=1, padding=1, use_bn=True),
+                DWConv(512, 512, kernel_size=3, strides=1, padding=1),
+                nn.MaxPool2D((2, 2), (2, 1), (0, 1)),
+                DWConv(512, 512, kernel_size=2, strides=1, padding=0, use_bn=True),
+            )
+
+    def hybrid_forward(self, F, x, *args, **kwargs):
         conv = self.cnn(x)
         return conv
+
 
 class VGG(HybridBlock):
     def __init__(self, **kwargs):

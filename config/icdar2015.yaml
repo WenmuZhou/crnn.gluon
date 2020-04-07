@@ -9,7 +9,7 @@ arch:
         backbone: resnet18_v1b
         k: 50
     feature_extraction:
-      type: CRNN_lite
+      type: CNN_lite
     sequence_model:
       type: RNN
       args:
