@@ -10,16 +10,13 @@ from pathlib import Path
 
 def setup_logger(log_file_path: str = None):
     import logging
+    logging.basicConfig(format='%(asctime)s %(name)s %(levelname)s: %(message)s', datefmt='%Y-%m-%d %H:%M:%S', )
     logger = logging.getLogger('crnn.gluon')
-    logger.setLevel(logging.DEBUG)
-    formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
-    ch = logging.StreamHandler()
-    ch.setFormatter(formatter)
-    logger.addHandler(ch)
     if log_file_path is not None:
         file_handle = logging.FileHandler(log_file_path)
-        file_handle.setFormatter(formatter)
+        file_handle.setFormatter(logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s'))
         logger.addHandler(file_handle)
+    logger.setLevel(logging.DEBUG)
     logger.info('logger init finished')
     return logger
 

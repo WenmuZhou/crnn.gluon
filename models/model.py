@@ -71,22 +71,23 @@ class Model(HybridBlock):
 
 
 if __name__ == '__main__':
-    import os
+    import anyconfig
     import mxnet as mx
     import numpy as np
-    from utils import read_json
+    from utils import parse_config
 
-    config = read_json(r'E:\zj\code\crnn.gluon\config.json')
-
-    config['data_loader']['args']['alphabet'] = str(np.load(r'E:\zj\code\crnn.gluon\alphabet.npy'))
-    alphabet = config['data_loader']['args']['alphabet']
-    # checkpoint = torch.load(config['trainer']['resume']['checkpoint'])
     ctx = mx.cpu()
-    net = Model(len(alphabet), config['arch']['args'])
+    a = nd.random.randn(2, 3, 32, 320, ctx=ctx)
+    config = anyconfig.load(open(r'E:\zj\code\crnn.gluon\config\icdar2015.yaml', 'rb'))
+    if 'base' in config:
+        config = parse_config(config)
+    config['dataset']['alphabet'] = str(np.load(r'E:\zj\code\crnn.gluon\alphabet.npy'))
+    alphabet = config['dataset']['alphabet']
+    # checkpoint = torch.load(config['trainer']['resume']['checkpoint'])
+    net = Model(len(alphabet),ctx, config['arch']['args'])
     # net.hybridize()
     net.initialize(ctx=ctx)
     print(net.model_name)
-    print(net.get_batch_max_length(32, 320, ctx))
-    a = nd.zeros((2, 3, 32, 320), ctx=ctx)
-    b = net(a)
+    print(net.get_batch_max_length(a))
+    b = net(a)[0]
     print(b.shape)

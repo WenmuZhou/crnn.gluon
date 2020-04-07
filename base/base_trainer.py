@@ -9,10 +9,10 @@ import pathlib
 import numpy as np
 from pprint import pformat
 import mxnet as mx
-from mxnet import nd, gluon
+from mxnet import gluon
 import traceback
 
-from utils import setup_logger, get_ctx
+from utils import setup_logger
 
 
 class BaseTrainer:

@@ -58,20 +58,16 @@ class Trainer(BaseTrainer):
 
             if self.tensorboard_enable:
                 # write tensorboard
-                self.writer.add_scalar(
-                    'TRAIN/ctc_loss', loss, self.global_step)
+                self.writer.add_scalar('TRAIN/ctc_loss', loss, self.global_step)
                 self.writer.add_scalar('TRAIN/acc', acc, self.global_step)
-                self.writer.add_scalar(
-                    'TRAIN/edit_distance', edit_dis, self.global_step)
-                self.writer.add_scalar(
-                    'TRAIN/lr', self.trainer.learning_rate, self.global_step)
+                self.writer.add_scalar('TRAIN/edit_distance', edit_dis, self.global_step)
+                self.writer.add_scalar('TRAIN/lr', self.trainer.learning_rate, self.global_step)
 
             if (i + 1) % self.display_interval == 0:
                 batch_time = time.time() - batch_start
                 self.logger.info(
                     '[{}/{}], [{}/{}], global_step: {}, Speed: {:.1f} samples/sec, acc:{:.4f}, ctc loss:{:.4f}, edit_dis:{:.4f} lr:{}, time:{:.2f}'.format(
-                        epoch, self.epochs, i + 1, self.train_loader_len, self.global_step,
-                                            self.display_interval * cur_batch_size / batch_time,
+                        epoch, self.epochs, i + 1, self.train_loader_len, self.global_step, self.display_interval * cur_batch_size / batch_time,
                         acc, loss, edit_dis, self.trainer.learning_rate, batch_time))
                 batch_start = time.time()
         return {'train_loss': train_loss / self.train_loader_len, 'time': time.time() - epoch_start, 'epoch': epoch}
@@ -103,11 +99,9 @@ class Trainer(BaseTrainer):
 
             if self.tensorboard_enable:
                 self.writer.add_scalar('EVAL/acc', val_acc, self.global_step)
-                self.writer.add_scalar(
-                    'EVAL/edit_distance', edit_dis, self.global_step)
+                self.writer.add_scalar('EVAL/edit_distance', edit_dis, self.global_step)
 
-            self.logger.info(
-                '[{}/{}], val_acc: {:.6f}'.format(self.epoch_result['epoch'], self.epochs, val_acc))
+            self.logger.info('[{}/{}], val_acc: {:.6f}'.format(self.epoch_result['epoch'], self.epochs, val_acc))
 
             if val_acc >= self.metrics['val_acc']:
                 save_best = True
@@ -130,10 +124,7 @@ class Trainer(BaseTrainer):
             logged = False
             for (pred, pred_conf), (target, _) in zipped:
                 if self.tensorboard_enable and not logged:
-                    self.writer.add_text(tag='{}/pred'.format(phase),
-                                         text='pred: {} -- gt:{}'.format(
-                                             pred, target),
-                                         global_step=self.global_step)
+                    self.writer.add_text(tag='{}/pred'.format(phase), text='pred: {} -- gt:{}'.format(pred, target), global_step=self.global_step)
                     logged = True
                 edit_dis += Levenshtein.distance(pred, target)
                 if pred == target:

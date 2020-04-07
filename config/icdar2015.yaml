@@ -4,7 +4,10 @@ arch:
   type: crnnModel
   args:
     binarization:
-      type: None
+      type: ResNetFPN
+      args:
+        backbone: resnet18_v1b
+        k: 50
     feature_extraction:
       type: VGG
     sequence_model:
