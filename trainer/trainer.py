@@ -66,7 +66,7 @@ class Trainer(BaseTrainer):
             if (i + 1) % self.display_interval == 0:
                 batch_time = time.time() - batch_start
                 self.logger.info(
-                    '[{}/{}], [{}/{}], global_step: {}, Speed: {:.1f} samples/sec, acc:{:.4f}, ctc loss:{:.4f}, edit_dis:{:.4f} lr:{}, time:{:.2f}'.format(
+                    '[{}/{}], [{}/{}], global_step: {}, Speed: {:.1f} samples/sec, acc:{:.4f}, loss:{:.4f}, edit_dis:{:.4f} lr:{}, time:{:.2f}'.format(
                         epoch, self.epochs, i + 1, self.train_loader_len, self.global_step, self.display_interval * cur_batch_size / batch_time,
                         acc, loss, edit_dis, self.trainer.learning_rate, batch_time))
                 batch_start = time.time()

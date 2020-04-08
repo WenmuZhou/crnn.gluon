@@ -2,21 +2,20 @@
 # @Time    : 2018/8/23 22:20
 # @Author  : zhoujun
 import os
-import argparse
-import anyconfig
-import numpy as np
-from mxnet import nd
-from mxnet.gluon.loss import CTCLoss
-
-from models import get_model
-from data_loader import get_dataloader
-from trainer import Trainer
-from utils import get_ctx
 
 
 def main(config):
+
+    from mxnet import nd
+    from mxnet.gluon.loss import CTCLoss
+
+    from models import get_model
+    from data_loader import get_dataloader
+    from trainer import Trainer
+    from utils import get_ctx, load
+
     if os.path.isfile(config['dataset']['alphabet']):
-        config['dataset']['alphabet'] = str(np.load(config['dataset']['alphabet']))
+        config['dataset']['alphabet'] = ''.join(load(config['dataset']['alphabet']))
 
     prediction_type = config['arch']['args']['prediction']['type']
     num_class = len(config['dataset']['alphabet'])
@@ -56,12 +55,13 @@ def main(config):
                       criterion=criterion,
                       train_loader=train_loader,
                       validate_loader=validate_loader,
-                      sample_input = sample_input,
+                      sample_input=sample_input,
                       ctx=ctx)
     trainer.train()
 
 
 def init_args():
+    import argparse
     parser = argparse.ArgumentParser(description='DBNet.pytorch')
     parser.add_argument('--config_file', default='config/icdar2015.yaml', type=str)
     args = parser.parse_args()
@@ -70,7 +70,7 @@ def init_args():
 
 if __name__ == '__main__':
     import sys
-
+    import anyconfig
     project = 'crnn.gluon'  # 工作项目根目录
     sys.path.append(os.getcwd().split(project)[0] + project)
 

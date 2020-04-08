@@ -23,10 +23,10 @@ optimizer:
 lr_scheduler:
   type: FactorScheduler
   args:
-    step: 2
+    step: 30
     factor: 0.1
     stop_factor_lr: 1.0e-07
-    warmup_begin_lr: 0.0001
+#    warmup_begin_lr: 0.0001
 trainer:
   seed: 2
   gpus:
@@ -38,13 +38,13 @@ trainer:
   output_dir: output
   tensorboard: true
 dataset:
-  alphabet: alphabet.npy
+  alphabet: dict.txt
   train:
     dataset:
       type: ImageDataset # 数据集类型
       args:
         data_path:
-          - - E:/zj/dataset/train.txt
+          - - /media/zj/资料/zj/dataset/test_crnn/train_linux.txt
         data_ratio:
           - 1.0
         img_mode: RGB
@@ -52,13 +52,13 @@ dataset:
       batch_size: 16
       shuffle: true
       pin_memory: false
-      num_workers: 0
+      num_workers: 6
   validate:
     dataset:
       type: ImageDataset
       args:
         data_path: # [文件，文件]，每个文件格式为 img_path \t gt
-          - E:/zj/dataset/train.txt
+          - /media/zj/资料/zj/dataset/test_crnn/val_linux.txt
         img_mode: RGB
     loader:
       batch_size: 4

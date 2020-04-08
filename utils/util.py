@@ -32,29 +32,48 @@ def exe_time(func):
     return newFunc
 
 
-def save_json(data, json_path):
-    with open(json_path, mode='w', encoding='utf8') as f:
-        json.dump(data, f, indent=4)
+def load(file_path: str):
+    file_path = pathlib.Path(file_path)
+    func_dict = {'.txt': _load_txt, '.json': _load_json, '.list': _load_txt}
+    assert file_path.suffix in func_dict
+    return func_dict[file_path.suffix](file_path)
 
 
-def load_json(json_path):
-    with open(json_path, mode='r', encoding='utf8') as f:
-        data = json.load(f)
-    return data
+def _load_txt(file_path: str):
+    with open(file_path, 'r', encoding='utf8') as f:
+        content = [x.strip().strip('\ufeff').strip('\xef\xbb\xbf') for x in f.readlines()]
+    return content
 
 
-def read_json(fname):
-    if isinstance(fname, str):
-        fname = Path(fname)
-    with fname.open('rt') as handle:
-        return json.load(handle)
+def _load_json(file_path: str):
+    with open(file_path, 'r', encoding='utf8') as f:
+        content = json.load(f)
+    return content
 
 
-def write_json(content, fname):
-    if isinstance(fname, str):
-        fname = Path(fname)
-    with fname.open('wt') as handle:
-        json.dump(content, handle, indent=4, sort_keys=False)
+def save(data, file_path):
+    file_path = pathlib.Path(file_path)
+    func_dict = {'.txt': _save_txt, '.json': _save_json}
+    assert file_path.suffix in func_dict
+    return func_dict[file_path.suffix](data, file_path)
+
+
+def _save_txt(data, file_path):
+    """
+    将一个list的数组写入txt文件里
+    :param data:
+    :param file_path:
+    :return:
+    """
+    if not isinstance(data, list):
+        data = [data]
+    with open(file_path, mode='w', encoding='utf8') as f:
+        f.write('\n'.join(data))
+
+
+def _save_json(data, file_path):
+    with open(file_path, 'w', encoding='utf-8') as json_file:
+        json.dump(data, json_file, ensure_ascii=False, indent=4)
 
 
 def get_ctx(gpus):

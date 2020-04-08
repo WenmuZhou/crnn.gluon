@@ -44,7 +44,7 @@ class BaseTrainer:
             from mxboard import SummaryWriter
             self.writer = SummaryWriter(self.save_dir, verbose=False)
 
-        self.logger = setup_logger(os.path.join(self.save_dir, 'train_log'))
+        self.logger = setup_logger(os.path.join(self.save_dir, 'train.log'))
         self.logger.info(pformat(self.config))
         self.logger.info(self.model)
         # device set
