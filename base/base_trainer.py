@@ -6,13 +6,12 @@ import os
 import pickle
 import shutil
 import pathlib
-import numpy as np
 from pprint import pformat
 import mxnet as mx
 from mxnet import gluon
 import traceback
 
-from utils import setup_logger
+from utils import setup_logger,save
 
 
 class BaseTrainer:
@@ -29,7 +28,7 @@ class BaseTrainer:
         if not os.path.exists(self.checkpoint_dir):
             os.makedirs(self.checkpoint_dir)
         # 保存本次实验的alphabet 到模型保存的地方
-        np.save(os.path.join(self.save_dir, 'alphabet.npy'), self.alphabet)
+        save(list(self.alphabet), os.path.join(self.save_dir, 'dict.txt'))
         self.global_step = 0
         self.start_epoch = 0
         self.config = config
