@@ -9,7 +9,7 @@ arch:
         backbone: resnet18_v1b
         k: 50
     feature_extraction:
-      type: CNN_lite
+      type: VGG
     sequence_model:
       type: RNN
       args:
@@ -52,7 +52,7 @@ dataset:
       batch_size: 16
       shuffle: true
       pin_memory: false
-      num_workers: 6
+      num_workers: 4
   validate:
     dataset:
       type: ImageDataset

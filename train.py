@@ -5,7 +5,6 @@ import os
 
 
 def main(config):
-
     from mxnet import nd
     from mxnet.gluon.loss import CTCLoss
 
