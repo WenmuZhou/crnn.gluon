@@ -36,10 +36,10 @@ class ImageDataset(BaseDataSet):
         img = cv2.imread(img_path, 1 if self.img_mode != 'GRAY' else 0)
         if self.img_mode == 'RGB':
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        if self.remove_blank:
-            label = label.replace(' ', '')
         if self.ignore_chinese_punctuation:
             label = punctuation_mend(label)
+        if self.remove_blank:
+            label = label.replace(' ', '')
         return img, label
 
 
